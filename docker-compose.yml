@@ -1,0 +1,30 @@
+services:
+  auth-service-db:
+    image: postgres:18
+    container_name: auth-service-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: db
+    networks:
+      - rede-interna
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    restart: always
+    depends_on:
+      - auth-service-db
+    environment:
+      SPRING_DATASOURCE_URL: ${AUTH_SERVICE_SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "4001:4001"
+    networks:
+      - rede-interna
+
+networks:
+  rede-interna:
+    driver: bridge
