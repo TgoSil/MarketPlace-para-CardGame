@@ -11,14 +11,14 @@ import com.quatro.auth_service.repository.UserRepository;
 @Service
 public class UserService {
     
-    private final UserRepository authRepository;
+    private final UserRepository userRepository;
 
-    public UserService(UserRepository authRepository) {
-        this.authRepository = authRepository;
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
     public Optional<User> findByEmail(LoginRequestDto loginRequestDto) {
-        return authRepository.findByEmail(loginRequestDto.getEmail());
+        return userRepository.findByEmail(loginRequestDto.getEmail());
     }
 
 
