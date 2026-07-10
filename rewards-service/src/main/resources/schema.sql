@@ -39,3 +39,9 @@ create table if not exists "cartas_recebidas_resgate" (
     id_carta uuid not null,
     raridade_sorteada varchar(20) not null
 );
+
+create table if not exists "cartas" (
+    id_carta uuid primary key,
+    nome varchar(100) not null,
+    raridade varchar(5) not null
+);
