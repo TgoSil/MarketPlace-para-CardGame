@@ -1,4 +1,16 @@
 services:
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    restart: always
+    environment:
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+    ports:
+      - "4004:4004"
+    networks:
+      - rede-interna
+
   auth-service-db:
     image: postgres:18
     container_name: auth-service-db

@@ -1,0 +1,17 @@
+server:
+  port: 4004
+
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service-route
+              uri: ${AUTH_SERVICE_URL}
+              predicates:
+                - Path=/auth/**
+              filters:
+                - StripPrefix=1
+
+            
