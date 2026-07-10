@@ -6,7 +6,7 @@ import com.quatro.rewards_service.service.RewardsService;
 
 class RewardsServiceTest {
 
-    private final RewardsService service = new RewardsService(null, null, null, null, null);
+    private final RewardsService service = new RewardsService(null, null, null, null, null, null);
 
     @Test
     void moedasSemCicloNaoMultiplica() {

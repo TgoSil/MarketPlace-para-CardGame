@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,8 @@ import com.quatro.rewards_service.domain.entity.CartaRecebida;
 import com.quatro.rewards_service.domain.entity.Login;
 import com.quatro.rewards_service.domain.entity.Reward;
 import com.quatro.rewards_service.domain.entity.UserStreak;
+import com.quatro.rewards_service.domain.event.RecompensaCartaEvent;
+import com.quatro.rewards_service.domain.event.RecompensaDinheiroEvent;
 import com.quatro.rewards_service.domain.repository.CartaRecebidaRepository;
 import com.quatro.rewards_service.domain.repository.LoginRepository;
 import com.quatro.rewards_service.domain.repository.RewardRepository;
@@ -32,6 +35,7 @@ public class RewardsService {
     private final LoginRepository loginRepository;
     private final CartaRecebidaRepository cartaRecebidaRepository;
     private final BoosterService boosterService;
+    private final RewardsEventPublisher eventPublisher;
 
     // Ordem dos tiers para o upgrade por ciclo
     private static final List<String> ORDEM_TIERS =
@@ -190,6 +194,20 @@ public class RewardsService {
                         .build());
                 return new CartaDto(c.getIdCarta(), c.getNome(), c.getRaridade());
             }).toList();
+        }
+
+        if (moedas != null) {
+            eventPublisher.publicarRecompensaDinheiro(
+                    new RecompensaDinheiroEvent(idUser, moedas));
+        }
+        if (cartas != null) {
+            var cartasGanhas = cartas.stream()
+                    .collect(Collectors.groupingBy(Carta::getIdCarta, Collectors.counting()))
+                    .entrySet().stream()
+                    .map(e -> new RecompensaCartaEvent.CartaGanha(e.getKey(), e.getValue().intValue()))
+                    .toList();
+            eventPublisher.publicarRecompensaCarta(
+                    new RecompensaCartaEvent(idUser, cartasGanhas));
         }
 
         return ResgateResponseDto.builder()
