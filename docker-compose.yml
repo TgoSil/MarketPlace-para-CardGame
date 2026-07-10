@@ -26,6 +26,32 @@ services:
     networks:
       - rede-interna
 
+  rewards-service-db:
+    image: postgres:18
+    container_name: rewards-service-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: rewards_db
+    networks:
+      - rede-interna
+  rewards-service:
+    build: ./rewards-service
+    container_name: rewards-service
+    restart: always
+    depends_on:
+      - rewards-service-db
+    environment:
+      SPRING_DATASOURCE_URL: ${REWARDS_SERVICE_SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "4003:4003"
+    networks:
+      - rede-interna
+
 networks:
   rede-interna:
     driver: bridge
