@@ -1,14 +1,23 @@
 package com.quatro.rewards_service.service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.quatro.rewards_service.domain.dto.CartaDto;
+import com.quatro.rewards_service.domain.dto.ResgateResponseDto;
+import com.quatro.rewards_service.domain.dto.StatusRecompensaDto;
+import com.quatro.rewards_service.domain.entity.Carta;
+import com.quatro.rewards_service.domain.entity.CartaRecebida;
+import com.quatro.rewards_service.domain.entity.Login;
 import com.quatro.rewards_service.domain.entity.Reward;
 import com.quatro.rewards_service.domain.entity.UserStreak;
+import com.quatro.rewards_service.domain.repository.CartaRecebidaRepository;
+import com.quatro.rewards_service.domain.repository.LoginRepository;
 import com.quatro.rewards_service.domain.repository.RewardRepository;
 import com.quatro.rewards_service.domain.repository.UserStreakRepository;
 
@@ -20,6 +29,9 @@ public class RewardsService {
 
     private final UserStreakRepository userStreakRepository;
     private final RewardRepository rewardRepository;
+    private final LoginRepository loginRepository;
+    private final CartaRecebidaRepository cartaRecebidaRepository;
+    private final BoosterService boosterService;
 
     // Ordem dos tiers para o upgrade por ciclo
     private static final List<String> ORDEM_TIERS =
@@ -80,17 +92,114 @@ public class RewardsService {
         return (int) Math.min(valor, TETO_MOEDAS);
     }
 
-    /** Tier do dia, subindo 1 nível por ciclo acumulado, com teto em LENDARIO */
+    /** Tier do dia, subindo 1 nível por ciclo acumulado */
     public String calcularTierPacote(String tierBase, int ciclosAcumulados) {
         int indice = ORDEM_TIERS.indexOf(tierBase) + ciclosAcumulados;
         indice = Math.min(indice, ORDEM_TIERS.size() - 1);
         return ORDEM_TIERS.get(indice);
     }
 
-    /** Busca a recompensa configurada para um dia do ciclo (1 a 30) */
+    /** Busca a recompensa configurada para um dia do ciclo  */
     public Reward buscarRecompensaDoDia(int diaCiclo) {
         return rewardRepository.findById(diaCiclo)
                 .orElseThrow(() -> new IllegalStateException(
                         "Não há recompensa para o dia " + diaCiclo));
+    }
+
+    /** Consulta o que o usuário receberia hoje, sem alterar nada. */
+    public StatusRecompensaDto consultarStatus(UUID idUser) {
+        LocalDate hoje = LocalDate.now();
+        boolean jaResgatouHoje = loginRepository.existsByIdUserAndDataLogin(idUser, hoje);
+        UserStreak atual = userStreakRepository.findById(idUser).orElse(null);
+        int diaCiclo = 1, ciclo = 0, streak = 1;
+        if (atual != null) {
+            LocalDate ultimo = atual.getDataUltimoLogin();
+            if (ultimo != null && ultimo.equals(hoje)) {
+                diaCiclo = atual.getDiaCiclo();
+                ciclo = atual.getCiclo();
+                streak = atual.getStreak();
+            } else if (ultimo != null && ultimo.equals(hoje.minusDays(1))) {
+                streak = atual.getStreak() + 1;
+                diaCiclo = atual.getDiaCiclo() + 1;
+                ciclo = atual.getCiclo();
+                if (diaCiclo > 30) {
+                    diaCiclo = 1;
+                    ciclo++;
+                }
+            }
+        }
+
+        Reward reward = buscarRecompensaDoDia(diaCiclo);
+        boolean ehMoedas = "MOEDAS".equals(reward.getTipoReward());
+
+        return StatusRecompensaDto.builder()
+                .disponivel(!jaResgatouHoje)
+                .streakAtual(streak)
+                .diaCiclo(diaCiclo)
+                .ciclo(ciclo)
+                .tipoProximaRecompensa(reward.getTipoReward())
+                .moedasPrevistas(ehMoedas ? calcularMoedas(reward.getQuantidadeMoedasBase(), ciclo) : null)
+                .tierPacotePrevisto(ehMoedas ? null : calcularTierPacote(reward.getTierPacoteBase(), ciclo))
+                .build();
+    }
+
+    /** Resgata a recompensa do dia. Lança IllegalStateException se já resgatou hoje. */
+    @Transactional
+    public ResgateResponseDto resgatar(UUID idUser) {
+        LocalDate hoje = LocalDate.now();
+
+        if (loginRepository.existsByIdUserAndDataLogin(idUser, hoje)) {
+            throw new IllegalStateException("Recompensa de hoje já foi resgatada");
+        }
+
+        UserStreak streak = atualizarStreak(idUser);
+        Reward reward = buscarRecompensaDoDia(streak.getDiaCiclo());
+
+        Integer moedas = null;
+        String tier = null;
+        List<Carta> cartas = null;
+
+        if ("MOEDAS".equals(reward.getTipoReward())) {
+            moedas = calcularMoedas(reward.getQuantidadeMoedasBase(), streak.getCiclo());
+        } else {
+            tier = calcularTierPacote(reward.getTierPacoteBase(), streak.getCiclo());
+            cartas = boosterService.abrirBooster(tier);
+        }
+
+        Login login = Login.builder()
+                .idLogin(UUID.randomUUID())
+                .idUser(idUser)
+                .diaCiclo(streak.getDiaCiclo())
+                .dataLogin(hoje)
+                .horarioLogin(LocalTime.now())
+                .streak(streak.getStreak())
+                .ciclo(streak.getCiclo())
+                .moedasRecebidas(moedas)
+                .tierPacoteRecebido(tier)
+                .build();
+        loginRepository.save(login);
+
+        List<CartaDto> cartasDto = null;
+        if (cartas != null) {
+            cartasDto = cartas.stream().map(c -> {
+                cartaRecebidaRepository.save(CartaRecebida.builder()
+                        .id(UUID.randomUUID())
+                        .idLogin(login.getIdLogin())
+                        .idCarta(c.getIdCarta())
+                        .raridadeSorteada(c.getRaridade())
+                        .build());
+                return new CartaDto(c.getIdCarta(), c.getNome(), c.getRaridade());
+            }).toList();
+        }
+
+        return ResgateResponseDto.builder()
+                .tipoReward(reward.getTipoReward())
+                .moedasRecebidas(moedas)
+                .tierPacote(tier)
+                .cartas(cartasDto)
+                .streak(streak.getStreak())
+                .diaCiclo(streak.getDiaCiclo())
+                .ciclo(streak.getCiclo())
+                .build();
     }
 }
