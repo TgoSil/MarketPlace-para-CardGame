@@ -4,16 +4,14 @@ import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
+import java.util.UUID;
 
-import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 
 @Component
 public class JwtUtil {
@@ -25,30 +23,15 @@ public class JwtUtil {
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(String email, String cargo) {
+    public String generateToken(UUID id, String email, String cargo) {
         return Jwts.builder()
-        .subject(email)
+        .subject(id.toString())
         .claim("cargo", cargo)
+        .claim("email", email)
         .issuedAt(new Date())
         .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
         .signWith(secretKey)
         .compact();
-    }
-
-    public void validateToken(String token) throws JwtException{
-        try {
-            Jwts.parser()
-            .verifyWith((SecretKey) secretKey)
-            .build()
-            .parseSignedClaims(token);
-        }
-        catch(SignatureException e) {
-            throw new JwtException("Assinatura JWT inválida");
-        } 
-        catch(JwtException e) {
-            throw new JwtException("JWT inválido");
-
-        }
     }
 
 }
