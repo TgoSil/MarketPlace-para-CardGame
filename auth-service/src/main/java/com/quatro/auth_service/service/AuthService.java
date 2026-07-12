@@ -12,8 +12,6 @@ import com.quatro.auth_service.exceptions.EmailAlreadyExistsException;
 import com.quatro.auth_service.exceptions.UsernameAlreadyExistsException;
 import com.quatro.auth_service.util.JwtUtil;
 
-import io.jsonwebtoken.JwtException;
-
 @Service
 public class AuthService {
 
@@ -40,19 +38,19 @@ public class AuthService {
     public Optional<String> authenticate(LoginRequestDto loginRequestDto) {
         Optional<String> tokenOptional = userService.findByEmail(loginRequestDto.getEmail())
         .filter(u -> passwordEncoder.matches(loginRequestDto.getSenha(), u.getSenha()))
-        .map(u -> jwtUtil.generateToken(u.getEmail(), u.getCargo()));
+        .map(u -> jwtUtil.generateToken(u.getId(), u.getEmail(), u.getCargo()));
         return tokenOptional;
     }
 
-    public boolean validateToken(String token) {
-        try {
-            jwtUtil.validateToken(token);
-            return true;
-        }
-        catch(JwtException e) {
-            return false;
-        }
-    }
+    // public boolean validateToken(String token) {
+    //     try {
+    //         jwtUtil.validateToken(token);
+    //         return true;
+    //     }
+    //     catch(JwtException e) {
+    //         return false;
+    //     }
+    // }
 
     public String register(RegisterRequestDto registerRequestDto) {
         if (!checkEmailValidity(registerRequestDto)) {
@@ -69,7 +67,7 @@ public class AuthService {
             passwordEncoder.encode(registerRequestDto.getSenha()),
             "Padrão");
 
-        String token = jwtUtil.generateToken(newUser.email(), newUser.cargo());
+        String token = jwtUtil.generateToken(newUser.id(), newUser.email(), newUser.cargo());
         return token;
     }
 
