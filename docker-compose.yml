@@ -6,6 +6,7 @@ services:
     restart: always
     environment:
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "4004:4004"
     networks:
@@ -52,7 +53,6 @@ services:
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
       - ./db_volumes/order-service-db:/data
-
 
 networks:
   rede-interna:
