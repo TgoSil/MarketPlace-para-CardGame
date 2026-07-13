@@ -5,6 +5,8 @@ services:
     restart: always
     environment:
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      INVENTORY_SERVICE_URL: ${INVENTORY_SERVICE_URL}
+      REWARDS_SERVICE_URL: ${REWARDS_SERVICE_URL}
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "4004:4004"
