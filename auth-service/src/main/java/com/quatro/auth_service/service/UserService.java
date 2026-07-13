@@ -38,7 +38,7 @@ public class UserService {
             .build();
         userRepository.save(newUser);
 
-        return new UserCreatedRecord(newUser.getEmail(), newUser.getCargo());
+        return new UserCreatedRecord(newUser.getId(), newUser.getEmail(), newUser.getCargo());
     }
 
 
