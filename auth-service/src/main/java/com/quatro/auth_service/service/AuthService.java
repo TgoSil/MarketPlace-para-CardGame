@@ -42,16 +42,6 @@ public class AuthService {
         return tokenOptional;
     }
 
-    // public boolean validateToken(String token) {
-    //     try {
-    //         jwtUtil.validateToken(token);
-    //         return true;
-    //     }
-    //     catch(JwtException e) {
-    //         return false;
-    //     }
-    // }
-
     public String register(RegisterRequestDto registerRequestDto) {
         if (!checkEmailValidity(registerRequestDto)) {
             throw new EmailAlreadyExistsException("Este email já está sendo utilizado");
