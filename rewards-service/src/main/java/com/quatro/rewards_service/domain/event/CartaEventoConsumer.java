@@ -1,4 +1,4 @@
-package com.quatro.rewards_service.service;
+package com.quatro.rewards_service.domain.event;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
