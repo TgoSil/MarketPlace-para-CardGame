@@ -14,8 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class InventarioRequestDto {
-    @NotNull(message = "O ID do usuário é obrigatório")
-    private UUID userId;
         
     @NotNull(message = "O ID da carta é obrigatório")
     private UUID cartaId;

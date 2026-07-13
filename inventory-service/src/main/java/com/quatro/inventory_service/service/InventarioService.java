@@ -24,10 +24,10 @@ public class InventarioService {
 
     // --- CREATE / UPDATE ---
     @Transactional
-    public InventarioResponseDto adicionarOuAtualizarCarta(InventarioRequestDto request) {
+    public InventarioResponseDto adicionarOuAtualizarCarta(UUID userId, InventarioRequestDto request) {
         int quantidadeParaAdicionar = request.getQuantidade() != null ? request.getQuantidade() : 1;
 
-        Optional<Inventario> inventarioExistente = repository.findByUserIdAndCartaId(request.getUserId(), request.getCartaId());
+        Optional<Inventario> inventarioExistente = repository.findByUserIdAndCartaId(userId, request.getCartaId());
 
         Inventario inventario;
         if (inventarioExistente.isPresent()) {
@@ -37,7 +37,7 @@ public class InventarioService {
         } else {
             // Se não existe, cria um novo registro
             inventario = Inventario.builder()
-                    .userId(request.getUserId())
+                    .userId(userId)
                     .cartaId(request.getCartaId())
                     .quantidade(quantidadeParaAdicionar)
                     .build();
@@ -71,6 +71,24 @@ public class InventarioService {
             repository.deleteById(id);
         } else {
             throw new RuntimeException("Carta não encontrada para remoção.");
+        }
+    }
+
+    @Transactional
+    public InventarioResponseDto removerCarta(UUID usuarioId, InventarioRequestDto request) {
+        int quantidadeParaRemover = request.getQuantidade() != null ? request.getQuantidade() : 1;
+
+        Optional<Inventario> inventarioExistente = repository.findByUserIdAndCartaId(usuarioId, request.getCartaId());
+
+        Inventario inventario = inventarioExistente.get();;
+        
+        if(inventario.getQuantidade()==quantidadeParaRemover){
+            removerCartaTotalmente(inventario.getUserId(), inventario.getCartaId());
+            return null;
+        }else{
+            inventario.setQuantidade(inventario.getQuantidade() - quantidadeParaRemover);
+            Inventario salvo = repository.save(inventario);
+            return converterParaDto(salvo);
         }
     }
 

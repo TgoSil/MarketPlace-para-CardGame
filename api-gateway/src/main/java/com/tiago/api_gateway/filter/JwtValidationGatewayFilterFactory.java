@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import com.tiago.api_gateway.utils.JwtUtil;
 
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Claims;
 
 @Component
 public class JwtValidationGatewayFilterFactory extends AbstractGatewayFilterFactory<Object>{
@@ -31,8 +32,14 @@ public class JwtValidationGatewayFilterFactory extends AbstractGatewayFilterFact
                 return exchange.getResponse().setComplete();
             }
             try {
-                String id = jwtUtil.validateToken(token.substring(7)).getSubject();
-                ServerHttpRequest modifiedRequest = exchange.getRequest().mutate().header("User-Id", id).build();
+                Claims claim = jwtUtil.validateToken(token.substring(7));
+                String id = claim.getSubject();
+                String cargo = claim.get("cargo", String.class);
+                ServerHttpRequest modifiedRequest = exchange.getRequest()  
+                                                            .mutate()
+                                                            .header("User-Id", id)
+                                                            .header("User-cargo", cargo)
+                                                            .build();
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             } catch(JwtException e) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
