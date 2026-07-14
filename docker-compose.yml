@@ -1,7 +1,6 @@
 services:
   api-gateway:
     build: ./api-gateway
-    container_name: api-gateway
     restart: always
     environment:
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
@@ -9,7 +8,7 @@ services:
       REWARDS_SERVICE_URL: ${REWARDS_SERVICE_URL}
       JWT_SECRET: ${JWT_SECRET}
     ports:
-      - "4004:4004"
+      - "4004:4004"   # TEMPORARIO: sera removido quando o NGINX (ALB) assumir a porta de entrada
     networks:
       - rede-interna
 
@@ -30,7 +29,6 @@ services:
 
   auth-service:
     build: ./auth-service
-    container_name: auth-service
     restart: always
     depends_on:
       - auth-service-db
@@ -39,8 +37,6 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "4001:4001"
     networks:
       - rede-interna
 
@@ -69,6 +65,7 @@ services:
       - ME_CONFIG_MONGODB_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@order-service-db:27017/
     depends_on:
       - order-service-db
+
   inventory-service-db:
     image: postgres:18
     container_name: inventory-service-db
@@ -82,7 +79,6 @@ services:
 
   inventory-service:
     build: ./inventory-service
-    container_name: inventory-service
     restart: always
     depends_on:
       - inventory-service-db
@@ -91,8 +87,6 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "4002:4002"
     networks:
       - rede-interna
 
@@ -109,7 +103,6 @@ services:
 
   rewards-service:
     build: ./rewards-service
-    container_name: rewards-service
     restart: always
     depends_on:
       - rewards-service-db
@@ -119,8 +112,6 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    ports:
-      - "4003:4003"
     networks:
       - rede-interna
 
