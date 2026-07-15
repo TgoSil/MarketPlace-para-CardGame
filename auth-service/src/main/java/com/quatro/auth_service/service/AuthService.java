@@ -8,8 +8,10 @@ import org.springframework.stereotype.Service;
 import com.quatro.auth_service.domain.dto.LoginRequestDto;
 import com.quatro.auth_service.domain.dto.RegisterRequestDto;
 import com.quatro.auth_service.domain.dto.UserCreatedRecord;
+import com.quatro.auth_service.domain.event.UsuarioEvento;
 import com.quatro.auth_service.exceptions.EmailAlreadyExistsException;
 import com.quatro.auth_service.exceptions.UsernameAlreadyExistsException;
+import com.quatro.auth_service.kakfa.KafkaProducer;
 import com.quatro.auth_service.util.JwtUtil;
 
 @Service
@@ -18,11 +20,16 @@ public class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final KafkaProducer kafkaProducer;
 
-    public AuthService(UserService userService, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthService(UserService userService,
+                        PasswordEncoder passwordEncoder,
+                        JwtUtil jwtUtil,
+                        KafkaProducer kafkaProducer) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.kafkaProducer = kafkaProducer;
     }
 
     public Boolean checkEmailValidity(RegisterRequestDto registerRequestDto) {
@@ -58,6 +65,9 @@ public class AuthService {
             "Padrão");
 
         String token = jwtUtil.generateToken(newUser.id(), newUser.email(), newUser.cargo());
+
+        kafkaProducer.sendUsuarioCriado(new UsuarioEvento(newUser.id()));
+
         return token;
     }
 
