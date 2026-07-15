@@ -6,7 +6,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 import com.quatro.rewards_service.domain.entity.Carta;
-import com.quatro.rewards_service.domain.event.CartaEvento;
 import com.quatro.rewards_service.domain.repository.CartaRepository;
 
 import lombok.RequiredArgsConstructor;
