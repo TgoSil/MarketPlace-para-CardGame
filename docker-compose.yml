@@ -39,6 +39,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
     ports:
       - "4001:4001"
     networks:
@@ -76,7 +78,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: inventory_db
+      POSTGRES_DB: db
     networks:
       - rede-interna
 
@@ -90,7 +92,7 @@ services:
       SPRING_DATASOURCE_URL: ${INVENTORY_SERVICE_SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
+
     ports:
       - "4002:4002"
     networks:
@@ -103,7 +105,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: rewards_db
+      POSTGRES_DB: db
     networks:
       - rede-interna
 
@@ -118,7 +120,6 @@ services:
       SPRING_DATASOURCE_URL: ${REWARDS_SERVICE_SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "4003:4003"
@@ -141,6 +142,15 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
       - rede-interna
+
+  kafka-ui:
+    image: kafbat/kafka-ui:aa21129
+    ports:
+      -  "8080:8080"
+    environment:
+      -  DYNAMIC_CONFIG_ENABLED=true
+    networks:
+      -  rede-interna
 
 networks:
   rede-interna:
