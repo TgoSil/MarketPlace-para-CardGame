@@ -10,8 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.quatro.inventory_service.domain.dto.InventarioRequestDto;
 import com.quatro.inventory_service.domain.dto.InventarioResponseDto;
+import com.quatro.inventory_service.domain.entity.Carta;
 import com.quatro.inventory_service.domain.entity.Inventario;
 import com.quatro.inventory_service.domain.entity.UsuarioCartaId;
+import com.quatro.inventory_service.repository.CartaRepository;
 import com.quatro.inventory_service.repository.InventarioRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -20,36 +22,41 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InventarioService {
 
-    private final InventarioRepository repository;
+    private final InventarioRepository inventarioRepository;
+    private final CartaRepository cartaRepository;
 
     // --- CREATE / UPDATE ---
     @Transactional
     public InventarioResponseDto adicionarOuAtualizarCarta(UUID userId, InventarioRequestDto request) {
         int quantidadeParaAdicionar = request.getQuantidade() != null ? request.getQuantidade() : 1;
 
-        Optional<Inventario> inventarioExistente = repository.findByUserIdAndCartaId(userId, request.getCartaId());
+        Optional<Inventario> inventarioExistente = inventarioRepository.findByUserIdAndCartaId(userId, request.getCartaId());
 
         Inventario inventario;
         if (inventarioExistente.isPresent()) {
-            // Se a carta já existe no inventário, soma a quantidade
             inventario = inventarioExistente.get();
             inventario.setQuantidade(inventario.getQuantidade() + quantidadeParaAdicionar);
         } else {
-            // Se não existe, cria um novo registro
-            inventario = Inventario.builder()
+            Optional<Carta> cartaExiste = cartaRepository.findById(request.getCartaId());
+            if(cartaExiste.isPresent()){
+                inventario = Inventario.builder()
                     .userId(userId)
                     .cartaId(request.getCartaId())
                     .quantidade(quantidadeParaAdicionar)
+                    .carta(cartaExiste.get())
                     .build();
+            }else{
+                throw new RuntimeException("Carta não existe.");
+            }
         }
 
-        Inventario salvo = repository.save(inventario);
+        Inventario salvo = inventarioRepository.save(inventario);
         return converterParaDto(salvo);
     }
 
     // --- READ ---
     public List<InventarioResponseDto> buscarInventarioPorUsuario(UUID userId) {
-        List<Inventario> inventarioUsuario = repository.findAllByUserId(userId);
+        List<Inventario> inventarioUsuario = inventarioRepository.findAllByUserId(userId);
         
         return inventarioUsuario.stream()
                 .map(this::converterParaDto)
@@ -57,7 +64,7 @@ public class InventarioService {
     }
 
     public InventarioResponseDto buscarCartaEspecifica(UUID userId, UUID cartaId) {
-        Inventario inventario = repository.findByUserIdAndCartaId(userId, cartaId)
+        Inventario inventario = inventarioRepository.findByUserIdAndCartaId(userId, cartaId)
                 .orElseThrow(() -> new RuntimeException("Carta não encontrada no inventário do usuário."));
         
         return converterParaDto(inventario);
@@ -67,8 +74,8 @@ public class InventarioService {
     @Transactional
     public void removerCartaTotalmente(UUID userId, UUID cartaId) {
         UsuarioCartaId id = new UsuarioCartaId(userId, cartaId);
-        if (repository.existsById(id)) {
-            repository.deleteById(id);
+        if (inventarioRepository.existsById(id)) {
+            inventarioRepository.deleteById(id);
         } else {
             throw new RuntimeException("Carta não encontrada para remoção.");
         }
@@ -78,7 +85,7 @@ public class InventarioService {
     public InventarioResponseDto removerCarta(UUID usuarioId, InventarioRequestDto request) {
         int quantidadeParaRemover = request.getQuantidade() != null ? request.getQuantidade() : 1;
 
-        Optional<Inventario> inventarioExistente = repository.findByUserIdAndCartaId(usuarioId, request.getCartaId());
+        Optional<Inventario> inventarioExistente = inventarioRepository.findByUserIdAndCartaId(usuarioId, request.getCartaId());
 
         Inventario inventario = inventarioExistente.get();;
         
@@ -87,20 +94,20 @@ public class InventarioService {
             return null;
         }else{
             inventario.setQuantidade(inventario.getQuantidade() - quantidadeParaRemover);
-            Inventario salvo = repository.save(inventario);
+            Inventario salvo = inventarioRepository.save(inventario);
             return converterParaDto(salvo);
         }
     }
 
     @Transactional
     public void deletarInventarioDoUsuario(UUID userId) {
-        repository.deleteAllByUserId(userId);
+        inventarioRepository.deleteAllByUserId(userId);
     }
 
     // --- MÉTODOS AUXILIARES ---
     private InventarioResponseDto converterParaDto(Inventario inventario) {
         return InventarioResponseDto.builder()
-                .cartaId(inventario.getCartaId())
+                .nomeCarta(inventario.getCarta() != null ? inventario.getCarta().getNome() : "Carta Desconhecida")
                 .quantidade(inventario.getQuantidade())
                 .build();
     }
