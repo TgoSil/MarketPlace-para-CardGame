@@ -16,7 +16,7 @@ public class UsuarioConsumer {
 
     private final ProfileService profileService;
 
-    @KafkaListener(topics = "CRIADO", groupId = "profile-service")
+    @KafkaListener(topics = "USUARIO_CRIADO", groupId = "profile-service")
     public void consumir(UsuarioEvento evento){
         log.info("Evento de usuário recebido: {}", evento);
         try{
