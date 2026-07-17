@@ -105,7 +105,7 @@ public class ProfileService {
 
     private CarteiraResponseDto converterParaDto(Carteira carteira) {
         return CarteiraResponseDto.builder()
-                .dinheiro(carteira.getDinheiro())
+                .dinheiro((double)carteira.getDinheiro()/100)
                 .build();
     }
 }
