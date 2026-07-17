@@ -8,21 +8,29 @@ import org.springframework.stereotype.Service;
 import com.quatro.profile_service.service.ProfileService;
 
 import lombok.RequiredArgsConstructor;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor
 public class UsuarioConsumer {
-    private static final Logger log = LoggerFactory.getLogger(RecompensaDinheiroConsumer.class);
+    private static final Logger log = LoggerFactory.getLogger(UsuarioConsumer.class);
 
     private final ProfileService profileService;
+    private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = "USUARIO_CRIADO", groupId = "profile-service")
-    public void consumir(UsuarioEvento evento){
-        log.info("Evento de usuário recebido: {}", evento);
+    public void consumir(String payload){
         try{
-            profileService.criarCarteira(evento.id());
+            UsuarioEvento evento = objectMapper.readValue(payload, UsuarioEvento.class);
+            log.info("Evento de usuário recebido: {}", evento);
+            try{
+                profileService.criarCarteira(evento.id());
+            }catch(Exception e){
+                log.warn("Usuário já existe, ignorando: {}", evento);
+            }
+            
         }catch(Exception e){
-            log.warn("Usuário já existe, ignorando: {}", evento);
+            log.error("Erro ao processar o payload: {} - Motivo: {}", payload, e.getMessage());
         }
         
     }

@@ -35,6 +35,7 @@ services:
     restart: always
     depends_on:
       - auth-service-db
+      - kafka
     environment:
       SPRING_DATASOURCE_URL: ${AUTH_SERVICE_SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
@@ -91,10 +92,12 @@ services:
     restart: always
     depends_on:
       - inventory-service-db
+      - kafka
     environment:
       SPRING_DATASOURCE_URL: ${INVENTORY_SERVICE_SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "4002:4002"
     networks:
@@ -145,10 +148,12 @@ services:
     restart: always
     depends_on:
       - profile-service-db
+      - kafka
     environment:
       SPRING_DATASOURCE_URL: ${PROFILE_SERVICE_SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "4007:4007"
     networks:
@@ -176,6 +181,8 @@ services:
       -  "8080:8080"
     environment:
       -  DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
     networks:
       -  rede-interna
 
