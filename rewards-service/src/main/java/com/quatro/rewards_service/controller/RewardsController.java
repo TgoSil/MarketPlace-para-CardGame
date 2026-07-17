@@ -14,19 +14,18 @@ import com.quatro.rewards_service.service.RewardsService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/rewards")
 @RequiredArgsConstructor
 public class RewardsController {
 
     private final RewardsService rewardsService;
 
-    @GetMapping("/status/{userId}")
-    public ResponseEntity<StatusRecompensaDto> consultarStatus(@PathVariable UUID userId) {
+    @GetMapping("/status")
+    public ResponseEntity<StatusRecompensaDto> consultarStatus(@RequestHeader("User-Id") UUID userId) {
         return ResponseEntity.ok(rewardsService.consultarStatus(userId));
     }
 
-    @PostMapping("/resgate/{userId}")
-    public ResponseEntity<ResgateResponseDto> resgatar(@PathVariable UUID userId) {
+    @PostMapping("/resgate")
+    public ResponseEntity<ResgateResponseDto> resgatar(@RequestHeader("User-Id") UUID userId) {
         try {
             return ResponseEntity.status(HttpStatus.CREATED).body(rewardsService.resgatar(userId));
         } catch (IllegalStateException e) {
