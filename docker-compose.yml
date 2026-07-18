@@ -22,6 +22,7 @@ services:
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL}
       CATALOG_SERVICE_URL: ${CATALOG_SERVICE_URL}
       SETTLEMENT_SERVICE_URL: ${SETTLEMENT_SERVICE_URL}
+      ORDER_SERVICE_URL: ${ORDER_SERVICE_URL}
       JWT_SECRET: ${JWT_SECRET}
     networks:
       - rede-interna
@@ -33,7 +34,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: db
+      POSTGRES_DB: auth_db
     volumes:
       - ./db_volumes/auth-service-db:/var/lib/postgresql
     ports:
@@ -81,6 +82,20 @@ services:
       - ME_CONFIG_MONGODB_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@order-service-db:27017/
     depends_on:
       - order-service-db
+    networks:
+      - rede-interna
+
+  order-service:
+    build: ./order-service
+    restart: always
+    depends_on:
+      - order-service-db
+      - kafka
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      SPRING_MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@order-service-db:27017/order_db?authSource=admin&uuidRepresentation=standard
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     networks:
       - rede-interna
 
