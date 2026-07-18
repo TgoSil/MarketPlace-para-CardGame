@@ -1,5 +1,6 @@
 package com.quatro.order_service.controller;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -52,6 +53,28 @@ public class OrderController {
 
         Map<String, Object> orders = orderService.getOrdersByUser(userId);
         return ResponseEntity.ok(orders);
+    }
+
+    @GetMapping("/admin/auctions")
+    public ResponseEntity<List<AuctionResponseDto>> getAllAuctions(
+            @RequestHeader(value = "User-cargo", defaultValue = "") String userCargo) {
+        
+        if (!"ADMIN".equalsIgnoreCase(userCargo)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(orderService.getAllAuctions());
+    }
+
+    @GetMapping("/admin/bids")
+    public ResponseEntity<List<BidResponseDto>> getAllBids(
+            @RequestHeader(value = "User-cargo", defaultValue = "") String userCargo) {
+        
+        if (!"ADMIN".equalsIgnoreCase(userCargo)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(orderService.getAllBids());
     }
 
     @PatchMapping("/orders/{id}/cancel")

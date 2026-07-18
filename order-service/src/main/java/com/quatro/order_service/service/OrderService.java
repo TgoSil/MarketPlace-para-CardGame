@@ -126,6 +126,16 @@ public class OrderService {
         return Map.of("auctions", auctions, "bids", bids);
     }
 
+    public List<AuctionResponseDto> getAllAuctions() {
+        return auctionRepository.findAll()
+                .stream().map(this::mapAuctionToResponse).toList();
+    }
+
+    public List<BidResponseDto> getAllBids() {
+        return bidRepository.findAll()
+                .stream().map(this::mapBidToResponse).toList();
+    }
+
     // ========================
     //  CANCELAMENTO (iniciado pelo usuário)
     // ========================
@@ -216,35 +226,26 @@ public class OrderService {
     //  EXPIRAÇÃO (chamada pelo Scheduler)
     // ========================
 
-    public void verificarOrdensExpiradas() {
-        Instant agora = Instant.now();
+    public void marcarComoCanceladaExterna(UUID orderId, String razao) {
+        log.info("Recebido cancelamento externo para ordem {}. Razão: {}", orderId, razao);
+        
+        // Tenta como Auction
+        auctionRepository.findById(orderId).ifPresent(a -> {
+            if ("ATIVO".equals(a.getStatus())) {
+                a.setStatus(razao); // "EXPIRADA" ou "CANCELADA"
+                auctionRepository.save(a);
+                log.info("Auction {} marcada como {}", orderId, razao);
+            }
+        });
 
-        List<Auction> auctionsExpiradas = auctionRepository.findByStatusAndExpiraEmBefore("ATIVO", agora);
-        for (Auction auction : auctionsExpiradas) {
-            auction.setStatus("EXPIRADA");
-            auctionRepository.save(auction);
-            log.info("Auction {} expirada.", auction.getIdAuction());
-
-            eventPublisher.publicarIntencaoCancelada(new IntencaoCanceladaEvent(
-                    "AUCTION", auction.getIdAuction(), auction.getIdCarta(), auction.getIdUser(), "EXPIRADA"
-            ));
-        }
-
-        List<Bid> bidsExpiradas = bidRepository.findByStatusAndExpiraEmBefore("ATIVO", agora);
-        for (Bid bid : bidsExpiradas) {
-            bid.setStatus("EXPIRADA");
-            bidRepository.save(bid);
-            log.info("Bid {} expirada.", bid.getId());
-
-            eventPublisher.publicarIntencaoCancelada(new IntencaoCanceladaEvent(
-                    "BID", bid.getId(), bid.getIdCarta(), bid.getIdUser(), "EXPIRADA"
-            ));
-        }
-
-        if (!auctionsExpiradas.isEmpty() || !bidsExpiradas.isEmpty()) {
-            log.info("Expiração: {} auctions e {} bids expiradas.",
-                    auctionsExpiradas.size(), bidsExpiradas.size());
-        }
+        // Tenta como Bid
+        bidRepository.findById(orderId).ifPresent(b -> {
+            if ("ATIVO".equals(b.getStatus())) {
+                b.setStatus(razao); // "EXPIRADA" ou "CANCELADA"
+                bidRepository.save(b);
+                log.info("Bid {} marcada como {}", orderId, razao);
+            }
+        });
     }
 
     // ========================

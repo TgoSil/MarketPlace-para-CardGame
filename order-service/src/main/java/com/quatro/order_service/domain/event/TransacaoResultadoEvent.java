@@ -2,10 +2,6 @@ package com.quatro.order_service.domain.event;
 
 import java.util.UUID;
 
-/**
- * Espelha o TransacaoEvent publicado pelo Settlement Service no tópico TRANSACAO_RESULTADO.
- * O Order Service consome este evento para atualizar o status das ordens originais.
- */
 public record TransacaoResultadoEvent(
         UUID transacaoId,
         UUID ordemCompraId,     // corresponde ao ID da Bid
