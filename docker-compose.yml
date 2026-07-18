@@ -1,4 +1,17 @@
 services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nginx
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - rede-interna
+
   api-gateway:
     build: ./api-gateway
     restart: always
@@ -6,9 +19,10 @@ services:
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
       INVENTORY_SERVICE_URL: ${INVENTORY_SERVICE_URL}
       REWARDS_SERVICE_URL: ${REWARDS_SERVICE_URL}
+      PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL}
+      CATALOG_SERVICE_URL: ${CATALOG_SERVICE_URL}
+      SETTLEMENT_SERVICE_URL: ${SETTLEMENT_SERVICE_URL}
       JWT_SECRET: ${JWT_SECRET}
-    ports:
-      - "4004:4004"   # TEMPORARIO: sera removido quando o NGINX (ALB) assumir a porta de entrada
     networks:
       - rede-interna
 
@@ -32,11 +46,13 @@ services:
     restart: always
     depends_on:
       - auth-service-db
+      - kafka
     environment:
       SPRING_DATASOURCE_URL: ${AUTH_SERVICE_SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     networks:
       - rede-interna
 
@@ -65,6 +81,8 @@ services:
       - ME_CONFIG_MONGODB_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@order-service-db:27017/
     depends_on:
       - order-service-db
+    networks:
+      - rede-interna
 
   inventory-service-db:
     image: postgres:18
@@ -74,6 +92,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: inventory_db
+    ports:
+      - "5002:5432"
     networks:
       - rede-interna
 
@@ -82,11 +102,12 @@ services:
     restart: always
     depends_on:
       - inventory-service-db
+      - kafka
     environment:
       SPRING_DATASOURCE_URL: ${INVENTORY_SERVICE_SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     networks:
       - rede-interna
 
@@ -115,6 +136,85 @@ services:
     networks:
       - rede-interna
 
+  profile-service-db:
+    image: postgres:18
+    container_name: profile-service-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: profile_db
+    networks:
+      - rede-interna
+
+  profile-service:
+    build: ./profile-service
+    restart: always
+    depends_on:
+      - profile-service-db
+      - kafka
+    environment:
+      SPRING_DATASOURCE_URL: ${PROFILE_SERVICE_SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - rede-interna
+
+  catalog-service-db:
+    image: postgres:18
+    container_name: catalog-service-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: catalog_db
+    ports:
+      - "5003:5432"
+    networks:
+      - rede-interna
+
+  catalog-service:
+    build: ./catalog-service
+    restart: always
+    depends_on:
+      - catalog-service-db
+      - kafka
+    environment:
+      SPRING_DATASOURCE_URL: ${CATALOG_SERVICE_SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - rede-interna
+
+  settlement-service-db:
+    image: postgres:18
+    container_name: settlement-service-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: settlement_db
+    ports:
+      - "5004:5432"
+    networks:
+      - rede-interna
+
+  settlement-service:
+    build: ./settlement-service
+    restart: always
+    depends_on:
+      - settlement-service-db
+      - kafka
+    environment:
+      SPRING_DATASOURCE_URL: ${SETTLEMENT_SERVICE_SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - rede-interna
+
   kafka:
     image: apache/kafka:3.9.0
     container_name: kafka
@@ -129,6 +229,17 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - rede-interna
+
+  kafka-ui:
+    image: kafbat/kafka-ui:aa21129
+    ports:
+      - "8080:8080"
+    environment:
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
     networks:
       - rede-interna
 
