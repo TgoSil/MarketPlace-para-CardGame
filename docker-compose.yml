@@ -9,6 +9,7 @@ services:
       REWARDS_SERVICE_URL: ${REWARDS_SERVICE_URL}
       PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL}
       CATALOG_SERVICE_URL: ${CATALOG_SERVICE_URL}
+      SETTLEMENT_SERVICE_URL: ${SETTLEMENT_SERVICE_URL}
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "4004:4004"
@@ -192,6 +193,33 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "4005:4005"
+    networks:
+      - rede-interna
+  settlement-service-db:
+      image: postgres:18
+      container_name: settlement-service-db
+      environment:
+        POSTGRES_USER: ${POSTGRES_USER} 
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        POSTGRES_DB: settlement_db
+      ports:
+        - "5004:5432"
+      networks: 
+        - rede-interna
+  settlement-service:
+    build: ./settlement-service
+    container_name: settlement-service
+    restart: always
+    depends_on:
+      - settlement-service-db
+      - kafka
+    environment:
+      SPRING_DATASOURCE_URL: ${SETTLEMENT_SERVICE_SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "4006:4006"
     networks:
       - rede-interna
   kafka:
