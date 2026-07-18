@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.quatro.grpc.profile";
+
+service ProfileService{
+  rpc transfereDinheiro (TransfereDinheiroRequest) returns (TransfereDinheiroResponse);
+}
+
+message TransfereDinheiroRequest {
+  double preco_carta = 1;
+  string id_user1 = 2; // Vendedor
+  string id_user2 = 3; // Comprador
+}
+
+message TransfereDinheiroResponse {
+  bool sucesso = 1;
+  string mensagem = 2;
+}
