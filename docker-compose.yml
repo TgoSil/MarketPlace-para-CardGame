@@ -230,6 +230,37 @@ services:
     networks:
       - rede-interna
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - rede-interna
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis-insight
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+    networks:
+      - rede-interna
+
+  matching-service:
+    build: ./matching-service
+    restart: always
+    depends_on:
+      - redis
+      - kafka
+    environment:
+      SPRING_REDIS_HOST: redis
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    networks:
+      - rede-interna
+
   kafka:
     image: apache/kafka:3.9.0
     container_name: kafka
