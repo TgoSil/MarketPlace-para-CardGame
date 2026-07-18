@@ -66,7 +66,12 @@ public class RewardsService {
 
         LocalDate ultimoLogin = streak.getDataUltimoLogin();
 
-        if (ultimoLogin != null && !ultimoLogin.equals(hoje)) {
+        if (ultimoLogin == null) {
+            streak.setStreak(1);
+            streak.setDiaCiclo(1);
+            streak.setCiclo(0);
+            streak.setDataUltimoLogin(hoje);
+        } else if (!ultimoLogin.equals(hoje)) {
             if (ultimoLogin.equals(hoje.minusDays(1))) {
                 streak.setStreak(streak.getStreak() + 1);
                 int novoDia = streak.getDiaCiclo() + 1;
