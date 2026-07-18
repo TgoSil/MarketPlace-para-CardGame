@@ -2,9 +2,13 @@ package com.quatro.settlement_service.kafka;
 
 import tools.jackson.databind.ObjectMapper;
 import com.quatro.settlement_service.domain.dto.TransacaoRequestDto;
+import com.quatro.settlement_service.domain.dto.TransacaoResponseDto;
+import com.quatro.settlement_service.domain.entity.Transacao;
 import com.quatro.settlement_service.domain.event.LeilaoEvent;
+import com.quatro.settlement_service.service.SettlementOrchestrator;
 import com.quatro.settlement_service.service.SettlementService;
 import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,6 +22,7 @@ public class LeilaoEventConsumer {
 
     private final ObjectMapper objectMapper;
     private final SettlementService transacaoService;
+    private final SettlementOrchestrator settlementOrchestrator;
 
     @KafkaListener(topics = LeilaoEvent.TOPICO, groupId = "settlement-service")
     public void consumir(String payload) {
@@ -37,9 +42,28 @@ public class LeilaoEventConsumer {
                     .quantidade(evento.quantidade())
                     .build();
 
-            // Persiste a transação no banco como INITIATED
-            transacaoService.adicionarTransacao(request);
+            // 1. Salva a transação inicial
+            TransacaoResponseDto transacaoSalva = transacaoService.adicionarTransacao(request);
             log.info("Transação registrada no banco e pronta para liquidação.");
+
+            // 2. Busca a entidade recém-salva (ou usa o DTO para transferir os dados)
+            Transacao transacao = Transacao.builder()
+                .id(transacaoSalva.getId())
+                .ordemCompraId(transacaoSalva.getOrdemCompraId())
+                .ordemVendaId(transacaoSalva.getOrdemVendaId())
+                .compradorId(transacaoSalva.getCompradorId())
+                .vendedorId(transacaoSalva.getVendedorId())
+                .cartaId(transacaoSalva.getCartaId())
+                .preco(transacaoSalva.getPreco())
+                .quantidade(transacaoSalva.getQuantidade())
+                .status(transacaoSalva.getStatus())
+                .razaoFalha(transacaoSalva.getRazaoFalha())
+                .criadoEm(transacaoSalva.getCriadoEm())
+                .atualizadoEm(transacaoSalva.getAtualizadoEm())
+                .build();
+
+            // 3. Dispara a orquestração gRPC
+            settlementOrchestrator.processarLiquidacao(transacao);
 
         } catch (Exception e) {
             log.error("Erro ao processar o evento LEILAO_CONCLUIDO. Payload: {} - Motivo: {}", payload, e.getMessage());
