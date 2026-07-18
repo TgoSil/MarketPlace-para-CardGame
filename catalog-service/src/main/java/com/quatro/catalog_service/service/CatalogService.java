@@ -9,7 +9,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.quatro.catalog_service.domain.dto.CartaEventDto;
 import com.quatro.catalog_service.domain.dto.CartaEvento;
 import com.quatro.catalog_service.domain.dto.CartaRequestDto;
 import com.quatro.catalog_service.domain.dto.CartaResponseDto;
