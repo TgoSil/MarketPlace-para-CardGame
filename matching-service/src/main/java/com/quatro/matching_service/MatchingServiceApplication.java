@@ -1,16 +1,19 @@
-package com.quatro.order_service;
+package com.quatro.matching_service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
-public class OrderServiceApplication {
+@EnableScheduling
+public class MatchingServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(OrderServiceApplication.class, args);
+		SpringApplication.run(MatchingServiceApplication.class, args);
 	}
 
 	@Bean
@@ -19,5 +22,4 @@ public class OrderServiceApplication {
 		mapper.registerModule(new JavaTimeModule());
 		return mapper;
 	}
-
 }
