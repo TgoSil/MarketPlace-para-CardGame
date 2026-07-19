@@ -1,5 +1,6 @@
 package com.quatro.profile_service.service;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,7 +40,7 @@ public class ProfileService {
 
     // -- CREATE --
     @Transactional
-    public CarteiraResponseDto criarCarteira(UUID userId){
+    public CarteiraResponseDto criarCarteira(UUID userId, String username){
         Optional<Carteira> carteiraExistente = repository.findById(userId);
 
         Carteira carteira;
@@ -47,6 +48,8 @@ public class ProfileService {
             carteira = Carteira.builder()
                     .userId(userId)
                     .dinheiro(0)
+                    .username(username)
+                    .criadoEm(LocalDate.now())
                     .build();
         }else {
             throw new RuntimeException("Usuário já existe.");
@@ -135,6 +138,8 @@ public class ProfileService {
     private CarteiraResponseDto converterParaDto(Carteira carteira) {
         return CarteiraResponseDto.builder()
                 .dinheiro((double)carteira.getDinheiro()/100)
+                .username(carteira.getUsername())
+                .criadoEm(carteira.getCriadoEm())
                 .build();
     }
 }
