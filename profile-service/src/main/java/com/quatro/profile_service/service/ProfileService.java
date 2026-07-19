@@ -1,13 +1,18 @@
 package com.quatro.profile_service.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import com.quatro.profile_service.domain.dto.CarteiraRequestDto;
 import com.quatro.profile_service.domain.dto.CarteiraResponseDto;
+import com.quatro.profile_service.domain.dto.UsuarioResponseDto;
 import com.quatro.profile_service.domain.entity.Carteira;
 import com.quatro.profile_service.repository.CarteiraRepository;
 
@@ -71,6 +76,17 @@ public class ProfileService {
         }
 
         return converterParaDto(carteira);
+    }
+
+    public List<UsuarioResponseDto> listarTodosUsuarios() {
+        return repository.findAll().stream()
+            .map(carteira -> UsuarioResponseDto.builder()
+                .id(carteira.getUserId())
+                .username(carteira.getUsername())
+                .dinheiro((double)carteira.getDinheiro()/100)
+                .criadoEm(carteira.getCriadoEm().atStartOfDay(ZoneId.systemDefault()).toInstant())
+                .build())
+            .collect(Collectors.toList());
     }
 
     // -- DELETE --

@@ -10,6 +10,7 @@
     
     <!-- Script específico da página de perfil importado aqui -->
     <script src="js/perfil.js" defer></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
     
@@ -20,6 +21,7 @@
             <a href="catalogo.html">CATÁLOGO</a>
             <a href="inventario.html">INVENTÁRIO</a>
             <a href="mercado.html">MERCADO</a>
+            <a href="usuarios.html" id="navAdminUsuarios" style="display: none;">USUÁRIOS</a>
         </div>
     </nav>
 
@@ -42,22 +44,8 @@
                 <span>SUAS OFERTAS ATIVAS:</span>
             </div>
 
-            <div class="offers-list">
-                <!-- Mock visual de ofertas. No futuro você preencherá isso dinamicamente buscando do Market/Order service -->
-                <div class="offer-item">
-                    <span>1x</span>
-                    <span>Voltante Azul</span>
-                    <span>10.00</span>
-                    <span>500.00</span>
-                    <span>2 dias</span>
-                </div>
-                <div class="offer-item">
-                    <span>1x</span>
-                    <span>Voltante Vermelho</span>
-                    <span>15.00</span>
-                    <span>800.00</span>
-                    <span>5 dias</span>
-                </div>
+            <div class="offers-list" id="offersList">
+                <!-- O JS preencherá isso dinamicamente -->
             </div>
 
             <!-- Seção de Recompensa Diária -->

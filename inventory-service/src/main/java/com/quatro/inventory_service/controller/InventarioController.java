@@ -36,6 +36,17 @@ public class InventarioController {
         return ResponseEntity.ok(inventarioService.adicionarOuAtualizarCarta(userId, requestDto));
     }
 
+    @PostMapping("/usuario/{userId}")
+    public ResponseEntity<InventarioResponseDto> adicionarItemNoUsuario(
+            @PathVariable UUID userId,
+            @RequestHeader("User-cargo") String cargo,
+            @RequestBody InventarioRequestDto requestDto) {
+        if(!cargo.equals("ADMIN")){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(inventarioService.adicionarOuAtualizarCarta(userId, requestDto));
+    }
+
     // --- READ ---
     // Buscar todas as cartas de um usuário específico
     @GetMapping("/usuario")
