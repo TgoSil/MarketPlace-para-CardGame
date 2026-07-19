@@ -15,4 +15,5 @@ public class CarteiraResponseDto {
     double dinheiro;
     String username;
     LocalDate criadoEm;
+    String cargo;
 }

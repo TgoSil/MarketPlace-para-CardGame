@@ -6,6 +6,7 @@
     <title>Mercado - Quatro</title>
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/mercado.js" defer></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
     
@@ -16,6 +17,7 @@
             <a href="catalogo.html">CATÁLOGO</a>
             <a href="inventario.html">INVENTÁRIO</a>
             <a href="mercado.html" class="active">MERCADO</a>
+            <a href="usuarios.html" id="navAdminUsuarios" style="display: none;">USUÁRIOS</a>
         </div>
     </nav>
 
@@ -33,10 +35,10 @@
             <div class="market-controls">
                 <div class="checkboxes">
                     <label>
-                        <span class="custom-checkbox">X</span> OFERTAS DE VENDA
+                        <input type="checkbox" id="checkVendas" checked onchange="renderizarTabela()"> OFERTAS DE VENDA
                     </label>
                     <label>
-                        <span class="custom-checkbox"></span> OFERTAS DE COMPRA
+                        <input type="checkbox" id="checkCompras" onchange="renderizarTabela()"> OFERTAS DE COMPRA
                     </label>
                 </div>
                 <input type="text" id="searchMarket" placeholder="Buscar por carta.." class="market-search">
@@ -70,18 +72,28 @@
                         <label>CARTA:</label>
                         <select id="selectCarta" class="market-input"></select>
                     </div>
-                    <!-- Campo de Quantidade Removido conforme regra de negócio (sempre 1) -->
                     <div class="form-row">
                         <label>Valor Mín.:</label>
                         <input type="number" id="valorMin" class="market-input" step="0.01" placeholder="Ex: 20.00">
+                    </div>
+                    <div class="form-row">
+                        <label>Perfil de Compra (Apenas para Bids):</label>
+                        <select id="perfilCompra" class="market-input">
+                            <option value="PADRAO">Padrão</option>
+                        </select>
                     </div>
                     <div class="form-row">
                         <label>Valor Máx.:</label>
                         <input type="number" id="valorMax" class="market-input" step="0.01" placeholder="Ex: 100.00">
                     </div>
                     <div class="form-row">
-                        <label>Ofertar até:</label>
-                        <input type="date" id="ofertarAte" class="market-input">
+                        <label>Duração da Oferta:</label>
+                        <div style="display: flex; gap: 10px;">
+                            <label>Dias:</label>
+                            <input type="number" id="duracaoDias" class="market-input" placeholder="Dias" min="0" value="0" style="width: 25%;">
+                            <label>Horas:</label>
+                            <input type="number" id="duracaoHoras" class="market-input" placeholder="Horas" min="0" max="23" value="0" style="width: 25%;">
+                        </div>
                     </div>
 
                     <div class="nova-oferta-actions">
