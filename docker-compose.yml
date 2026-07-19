@@ -89,8 +89,6 @@ services:
     - PGPOOL_HEALTH_CHECK_MAX_RETRIES=3
     - PGPOOL_HEALTH_CHECK_RETRY_DELAY=1
     - PGPOOL_FAILOVER_ON_BACKEND_ERROR=yes
-    ports:
-    - 5001:5432
     networks:
     - rede-interna
   auth-service:
@@ -105,7 +103,6 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-
     networks:
     - rede-interna
   order-service-db:
@@ -121,6 +118,21 @@ services:
     - order-service-db:/data/db
     networks:
     - rede-interna
+  order-service:
+    build: ./order-service
+    restart: always
+    depends_on:
+      - order-service-db
+      - kafka
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      SPRING_MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@order-service-db:27017/order_db?authSource=admin&uuidRepresentation=standard
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      INVENTORY_GRPC_URL: inventory-service:9090
+      PROFILE_GRPC_URL: profile-service:9091
+    networks:
+      - rede-interna
   mongo-express:
     image: mongo-express
     container_name: mongo-express
@@ -196,8 +208,6 @@ services:
     - PGPOOL_HEALTH_CHECK_MAX_RETRIES=3
     - PGPOOL_HEALTH_CHECK_RETRY_DELAY=1
     - PGPOOL_FAILOVER_ON_BACKEND_ERROR=yes
-    ports:
-    - 5002:5432
     networks:
     - rede-interna
   inventory-service:
@@ -431,8 +441,6 @@ services:
     - PGPOOL_HEALTH_CHECK_MAX_RETRIES=3
     - PGPOOL_HEALTH_CHECK_RETRY_DELAY=1
     - PGPOOL_FAILOVER_ON_BACKEND_ERROR=yes
-    ports:
-    - 5003:5432
     networks:
     - rede-interna
   catalog-service:
@@ -448,7 +456,6 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     networks:
       - rede-interna
-
   settlement-service-db:
     image: postgres:18
     container_name: settlement-service-db
@@ -457,8 +464,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: settlement_db
-    ports:
-      - "5004:5432"
     networks:
       - rede-interna
 
