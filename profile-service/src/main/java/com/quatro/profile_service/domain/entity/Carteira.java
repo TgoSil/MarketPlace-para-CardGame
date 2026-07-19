@@ -1,5 +1,6 @@
 package com.quatro.profile_service.domain.entity;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -24,4 +25,10 @@ public class Carteira {
 
     @Column(nullable = false)
     private Integer dinheiro;
+
+    @Column(nullable = false)
+    private String username;
+
+    @Column(name = "criado_em", nullable = false)
+    private LocalDate criadoEm;
 }

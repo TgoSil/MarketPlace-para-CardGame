@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Catálogo - Quatro</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/catalogo.js" defer></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="#" class="nav-logo">第四組項目</a>
+        <div class="nav-links">
+            <a href="perfil.html">PERFIL</a>
+            <a href="catalogo.html" class="active">CATÁLOGO</a>
+            <a href="inventario.html">INVENTÁRIO</a>
+            <a href="#">MERCADO</a>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="page-title">Catálogo</div>
+        <div class="wallet-container">
+            <span class="wallet-label">CARTEIRA:</span>
+            <div class="wallet-pill" id="walletBalance">0.00</div>
+        </div>
+    </div>
+
+    <!-- Grid onde as cartas serão injetadas -->
+    <div class="card-grid" id="catalogGrid"></div>
+
+    <!-- Modal de Detalhes -->
+    <div class="modal-overlay" id="cardModal">
+        <div class="modal-content-wrapper">
+            <span class="modal-close" id="closeModal">X</span>
+            
+            <div class="modal-card-preview" id="modalCardPreview">
+                <!-- A carta clonada virá para cá -->
+                <button class="btn-action" id="btnComprar">COMPRAR</button>
+            </div>
+            
+            <div class="modal-details">
+                <h3 id="modalCardName">Nome da Carta</h3>
+                <div class="modal-desc-box" id="modalCardDesc">
+                    Descrição da carta...
+                </div>
+                <div class="modal-stats">
+                    PODER: <span id="modalCardPower">0</span><br>
+                    TIPO: <span id="modalCardType">Desconhecido</span><br>
+                    RARIDADE: <span id="modalCardRarity">Básica</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
