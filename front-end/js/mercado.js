@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Carregamento inicial de dados
     await carregarCarteira();
     await carregarCatalogo();
-    await carregarListaMercado();
 
     // ==========================================
     // MAPEAMENTO DE EVENTOS DOS BOTÕES DO HTML[cite: 6]
@@ -29,6 +28,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Botões de Envio
     document.getElementById('btnComprarOferta')?.addEventListener('click', criarBid);
     document.getElementById('btnVenderOferta')?.addEventListener('click', criarAuction);
+
+    document.getElementById('checkVendas').addEventListener('change', carregarDadosMercado);
+    document.getElementById('checkCompras').addEventListener('change', carregarDadosMercado);
+    
+    await carregarDadosMercado();
 });
 
 // ==========================================
@@ -71,72 +75,103 @@ async function carregarCatalogo() {
     } catch (error) { console.error('Erro ao buscar catálogo:', error); }
 }
 
-async function carregarListaMercado() {
-    try {
-        // Removido o 'User-Id' da header
-        const response = await fetch(`http://localhost:80/orders`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            auctionsGlobais = data.auctions || []; 
-            bidsGlobais = data.bids || [];
-            renderizarTabela();
-        }
-    } catch (error) { console.error('Erro ao carregar mercado:', error); }
-}
+async function carregarDadosMercado() {
+    const mostrarVendas = document.getElementById('checkVendas').checked;
+    const mostrarCompras = document.getElementById('checkCompras').checked;
 
-// ==========================================
-// LÓGICA DE RENDERIZAÇÃO E INTERFACE
-// ==========================================
+    const fetches = [];
+
+    // Se estiver marcado, adiciona na fila de busca
+    if (mostrarVendas) {
+        fetches.push(fetch('http://localhost:80/order/auctions', { headers: { 'Authorization': `Bearer ${token}` } }));
+    }
+    if (mostrarCompras) {
+        fetches.push(fetch('http://localhost:80/order/bids', { headers: { 'Authorization': `Bearer ${token}` } }));
+    }
+
+    try {
+        const responses = await Promise.all(fetches);
+        // Cada resposta é tratada de forma independente: se uma falhar, a outra ainda é exibida
+        const data = await Promise.all(responses.map(r => r.ok ? r.json() : []));
+
+        auctionsGlobais = [];
+        bidsGlobais = [];
+
+        // Mapeia os dados de volta para as variáveis globais dependendo da ordem
+        let index = 0;
+        if (mostrarVendas) auctionsGlobais = data[index++];
+        if (mostrarCompras) bidsGlobais = data[index++];
+
+        renderizarTabela();
+    } catch (error) {
+        console.error('Erro ao carregar dados do mercado:', error);
+    }
+}
 
 function renderizarTabela() {
     const tbody = document.getElementById('marketListBody');
-    if (!tbody) return;
-    
     tbody.innerHTML = '';
 
-    // Lê os filtros do HTML[cite: 6]
-    const mostrarVendas = document.getElementById('checkVendas')?.checked;
-    const mostrarCompras = document.getElementById('checkCompras')?.checked;
-    const termoBusca = document.getElementById('searchMarket')?.value.toLowerCase() || '';
+    const mostrarVendas = document.getElementById('checkVendas').checked;
+    const mostrarCompras = document.getElementById('checkCompras').checked;
+    const termoBusca = (document.getElementById('searchMarket')?.value || '').trim().toLowerCase();
 
-    let listaParaExibir = [];
-    if (mostrarVendas) listaParaExibir.push(...auctionsGlobais.map(a => ({...a, tipo: 'VENDA'})));
-    if (mostrarCompras) listaParaExibir.push(...bidsGlobais.map(b => ({...b, tipo: 'COMPRA'})));
+    // Só faz sentido oferecer no mercado o que ainda está ATIVO
+    // (ofertas EXPIRADA/CANCELADA/CONCLUIDA continuam voltando da API, mas não são "ofertas disponíveis")
+    const passaNoFiltro = (oferta) => {
+        if (oferta.status !== 'ATIVO') return false;
+        if (!termoBusca) return true;
+        const cartaRelacionada = catalogoGlobal.find(c => (c.id || c.carta_id || c.idCarta) === oferta.idCarta);
+        const nomeCarta = cartaRelacionada ? cartaRelacionada.nome : '';
+        return nomeCarta.toLowerCase().includes(termoBusca);
+    };
 
-    // Aplica o filtro da barra de pesquisa
-    if (termoBusca) {
-        listaParaExibir = listaParaExibir.filter(oferta => {
-            const cartaRelacionada = catalogoGlobal.find(c => (c.id || c.carta_id || c.idCarta) === oferta.idCarta);
-            const nomeCarta = cartaRelacionada ? cartaRelacionada.nome.toLowerCase() : '';
-            return nomeCarta.includes(termoBusca);
+    let linhasRenderizadas = 0;
+
+    // Renderiza Vendas
+    if (mostrarVendas) {
+        auctionsGlobais.filter(passaNoFiltro).forEach(oferta => {
+            tbody.appendChild(criarLinhaTabela('VENDA', oferta));
+            linhasRenderizadas++;
         });
     }
 
-    if (listaParaExibir.length === 0) {
-        tbody.innerHTML = '<div class="market-row"><span colspan="4" style="width: 100%; text-align: center;">Nenhuma oferta encontrada.</span></div>';
-        return;
+    // Renderiza Compras
+    if (mostrarCompras) {
+        bidsGlobais.filter(passaNoFiltro).forEach(oferta => {
+            tbody.appendChild(criarLinhaTabela('COMPRA', oferta));
+            linhasRenderizadas++;
+        });
     }
 
-    listaParaExibir.forEach(oferta => {
-        const cartaRelacionada = catalogoGlobal.find(c => (c.id || c.carta_id || c.idCarta) === oferta.idCarta);
-        const nomeCarta = cartaRelacionada ? cartaRelacionada.nome : 'Carta Desconhecida';
-        
-        const valor = oferta.tipo === 'VENDA' ? oferta.precoMinimo : oferta.limitePagamento;
-        const valorMax = oferta.tipo === 'VENDA' ? (oferta.precoTeto || '--') : '--';
-        
-        const html = `
-            <div class="market-row">
-                <span>${nomeCarta}</span>
-                <span>${valor ? valor.toFixed(2) : '--'}</span>
-                <span>${typeof valorMax === 'number' ? valorMax.toFixed(2) : valorMax}</span>
-                <span>${formatarTempo(oferta.expiraEm)}</span>
-            </div>
-        `;
-        tbody.insertAdjacentHTML('beforeend', html);
-    });
+    if (linhasRenderizadas === 0) {
+        const vazio = document.createElement('div');
+        vazio.className = 'market-row';
+        vazio.innerHTML = `<span style="text-align: center; width: 100%;">Nenhuma oferta encontrada.</span>`;
+        tbody.appendChild(vazio);
+    }
+}
+
+// Função auxiliar para criar a linha mantendo a lógica de nome da carta
+function criarLinhaTabela(tipo, oferta) {
+    const cartaRelacionada = catalogoGlobal.find(c => (c.id || c.carta_id || c.idCarta) === oferta.idCarta);
+    const nomeCarta = cartaRelacionada ? cartaRelacionada.nome : 'Carta Desconhecida';
+    
+    const valor = tipo === 'VENDA' ? oferta.precoMinimo : oferta.limitePagamento;
+    const valorMax = tipo === 'VENDA' ? (oferta.precoTeto || '--') : '--';
+
+    // O cabeçalho da tabela tem 4 colunas (Carta / Valor Mín. / Valor Máx. / Tempo Restante),
+    // então o tipo (VENDA/COMPRA) é indicado dentro da própria célula da carta, e não
+    // como uma 5ª coluna solta (isso desalinhava as colunas com o cabeçalho).
+    const div = document.createElement('div');
+    div.className = 'market-row';
+    div.innerHTML = `
+        <span><strong>[${tipo}]</strong> ${nomeCarta}</span>
+        <span>${valor ? valor.toFixed(2) : '--'}</span>
+        <span>${valorMax !== '--' ? parseFloat(valorMax).toFixed(2) : '--'}</span>
+        <span>${formatarTempo(oferta.expiraEm)}</span>
+    `;
+    return div;
 }
 
 function formatarTempo(expiraEm) {
@@ -153,12 +188,22 @@ function formatarTempo(expiraEm) {
 }
 
 function abrirNovaOferta(cartaId = null) {
-    document.getElementById('marketListView').style.display = 'none';
-    document.getElementById('novaOfertaView').style.display = 'block';
+    const list = document.getElementById('marketListView');
+    const nova = document.getElementById('novaOfertaView');
     
-    if (cartaId) {
-        document.getElementById('selectCarta').value = cartaId;
-        atualizarPreviewDaCarta();
+    if (list && nova) {
+        list.style.display = 'none';
+        nova.style.display = 'block';
+        
+        if (cartaId) {
+            const select = document.getElementById('selectCarta');
+            if (select) {
+                select.value = cartaId;
+                atualizarPreviewDaCarta();
+            }
+        }
+    } else {
+        console.error("IDs de visualização não encontrados no DOM.");
     }
 }
 
@@ -169,7 +214,7 @@ function voltarParaLista() {
     if(document.getElementById('valorMin')) document.getElementById('valorMin').value = '';
     if(document.getElementById('valorMax')) document.getElementById('valorMax').value = '';
     
-    carregarListaMercado(); // Recarrega para trazer novidades
+    carregarDadosMercado(); // Recarrega para trazer novidades
 }
 
 function atualizarPreviewDaCarta() {
