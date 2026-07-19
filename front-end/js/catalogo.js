@@ -30,6 +30,7 @@ async function salvarNovaCarta() {
         tipo: document.getElementById('adminTipo').value,
         vida: parseInt(document.getElementById('adminVida').value),
         raridade: document.getElementById('adminRaridade').value,
+        descricao: document.getElementById('adminDescricao').value,
         imagemUrl: document.getElementById('adminUrl').value
     };
 
