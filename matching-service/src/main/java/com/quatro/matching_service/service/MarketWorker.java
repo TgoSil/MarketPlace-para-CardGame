@@ -62,34 +62,72 @@ public class MarketWorker {
             // Se não está em nenhuma sala, tenta entrar agora (útil para bids que chegaram antes da auction)
             if (bid.salasAtuais().isEmpty()) {
                 routingService.rotearNovoBid(bid);
-                bid = marketStateService.getBidInfo(bidId);
-                if (bid == null || bid.salasAtuais().isEmpty()) continue;
+            }
+        }
+
+        // 2. Resolução Instantânea do Proxy Bidding (Por Sala de Leilão)
+        Set<UUID> auctionsAtivas = marketStateService.getActiveAuctions();
+        for (UUID auctionId : auctionsAtivas) {
+            AuctionInfo auction = marketStateService.getAuctionInfo(auctionId);
+            if (auction == null) continue;
+
+            Set<String> robotIds = redisTemplate.opsForZSet().range("auction:" + auctionId + ":bids", 0, -1);
+            if (robotIds == null || robotIds.isEmpty()) continue;
+
+            BidInfo highestBidder = null;
+            BidInfo secondHighestBidder = null;
+
+            for (String bId : robotIds) {
+                BidInfo bid = marketStateService.getBidInfo(UUID.fromString(bId));
+                if (bid == null) continue;
+
+                BigDecimal limite = bid.limitePagamento() != null ? bid.limitePagamento() : BigDecimal.ZERO;
+
+                if (highestBidder == null) {
+                    highestBidder = bid;
+                } else {
+                    BigDecimal highestLimite = highestBidder.limitePagamento() != null ? highestBidder.limitePagamento() : BigDecimal.ZERO;
+                    
+                    if (limite.compareTo(highestLimite) > 0) {
+                        secondHighestBidder = highestBidder;
+                        highestBidder = bid;
+                    } else {
+                        BigDecimal secondLimite = secondHighestBidder != null && secondHighestBidder.limitePagamento() != null ? secondHighestBidder.limitePagamento() : BigDecimal.ZERO;
+                        if (secondHighestBidder == null || limite.compareTo(secondLimite) > 0) {
+                            secondHighestBidder = bid;
+                        }
+                    }
+                }
             }
 
-            for (UUID auctionId : bid.salasAtuais()) {
-                AuctionInfo auction = marketStateService.getAuctionInfo(auctionId);
-                if (auction == null) continue;
-
-                UUID topBidder = marketStateService.getTopBidder(auctionId);
-                if (topBidder != null && topBidder.equals(bid.idBid())) {
-                    // Já estou ganhando, não faço nada
-                    continue;
+            if (highestBidder != null) {
+                BigDecimal minimo = auction.precoMinimo() != null ? auction.precoMinimo() : BigDecimal.ZERO;
+                BigDecimal winningPrice = minimo;
+                
+                if (secondHighestBidder != null) {
+                    BigDecimal secondLimite = secondHighestBidder.limitePagamento() != null ? secondHighestBidder.limitePagamento() : BigDecimal.ZERO;
+                    winningPrice = secondLimite.add(BigDecimal.ONE);
+                    
+                    BigDecimal highestLimite = highestBidder.limitePagamento() != null ? highestBidder.limitePagamento() : BigDecimal.ZERO;
+                    if (winningPrice.compareTo(highestLimite) > 0) {
+                        winningPrice = highestLimite;
+                    }
                 }
 
-                // Estou perdendo. Vejo quanto o líder está pagando
-                BigDecimal topBidValue = marketStateService.getTopBidValue(auctionId);
-                if (topBidValue == null) topBidValue = auction.precoMinimo();
+                // Proteção: não deixar o preço cair abaixo do mínimo
+                if (winningPrice.compareTo(minimo) < 0) {
+                    winningPrice = minimo;
+                }
 
-                // Incremento de 1 dólar pra vencer
-                BigDecimal novoLance = topBidValue.add(BigDecimal.ONE);
-
-                // Se eu tenho limite pra cobrir, eu cubro!
-                if (bid.limitePagamento().compareTo(novoLance) >= 0) {
-                    marketStateService.updateBidInAuction(auctionId, bid.idBid(), novoLance);
-                    log.info("Robô {} cobriu o lance na sala {} com {}", bid.idBid(), auctionId, novoLance);
-                } else {
-                    // Não tenho dinheiro pra essa briga. Poderia fazer ZREM e sair da sala.
-                    // Para simplificar, vou apenas continuar perdendo (fica no fundo da fila).
+                // Define o preço vencedor real
+                marketStateService.updateBidInAuction(auctionId, highestBidder.idBid(), winningPrice);
+                log.info("Proxy Bidding na sala {}: Robô {} assumiu a liderança com {}", auctionId, highestBidder.idBid(), winningPrice);
+                
+                // Zera o score dos perdedores (para garantir que o ZREVRANGE do script Lua pegue o vencedor)
+                for (String bId : robotIds) {
+                    if (!bId.equals(highestBidder.idBid().toString())) {
+                        marketStateService.updateBidInAuction(auctionId, UUID.fromString(bId), BigDecimal.ZERO);
+                    }
                 }
             }
         }

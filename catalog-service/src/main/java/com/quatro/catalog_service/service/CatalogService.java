@@ -114,7 +114,9 @@ public class CatalogService {
 
     // --- LÓGICA DO KAFKA ---
     private void enviarEventoKafka(String acao, CartaResponseDto carta, UUID cartaId) {
-        CartaEvento evento = new CartaEvento(cartaId, carta.getNome(), carta.getRaridade(), acao);
+        String nome = carta != null ? carta.getNome() : null;
+        String raridade = carta != null ? carta.getRaridade() : null;
+        CartaEvento evento = new CartaEvento(cartaId, nome, raridade, acao);
         // Envia para o tópico. O primeiro parâmetro é o tópico, o segundo é a chave (ID), o terceiro é a mensagem
         kafkaTemplate.send(topicoCartaEvento, cartaId.toString(), evento);
         

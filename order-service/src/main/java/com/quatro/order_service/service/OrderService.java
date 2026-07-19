@@ -197,30 +197,44 @@ public class OrderService {
 
     public void marcarComoConcluido(UUID auctionId, UUID bidId) {
         auctionRepository.findById(auctionId).ifPresent(a -> {
-            a.setStatus("CONCLUIDO");
-            auctionRepository.save(a);
+            if (!"CONCLUIDO".equals(a.getStatus())) {
+                a.setStatus("CONCLUIDO");
+                auctionRepository.save(a);
+            } else {
+                log.info("Auction {} já está CONCLUIDO, ignorando duplicata.", auctionId);
+            }
         });
         bidRepository.findById(bidId).ifPresent(b -> {
-            b.setStatus("CONCLUIDO");
-            bidRepository.save(b);
+            if (!"CONCLUIDO".equals(b.getStatus())) {
+                b.setStatus("CONCLUIDO");
+                bidRepository.save(b);
+            } else {
+                log.info("Bid {} já está CONCLUIDO, ignorando duplicata.", bidId);
+            }
         });
     }
 
     public void marcarComoFalho(UUID auctionId, UUID bidId, String razaoFalha) {
         // O settlement reporta a falha com uma razão descritiva.
-        // Por ora, ambas as ordens voltam a ATIVO para serem re-casadas,
+        // Ambas as ordens voltam a ATIVO para serem re-casadas,
         // já que a transação falhou mas as intenções originais podem ainda ser válidas.
-        // TODO: Refinar quando o gRPC de validação estiver implementado — se a razão
-        //       indicar que um lado específico é inválido, apenas esse lado deve ser cancelado.
         auctionRepository.findById(auctionId).ifPresent(a -> {
-            a.setStatus("ATIVO");
-            auctionRepository.save(a);
-            log.warn("Auction {} reativada após falha na transação. Razão: {}", auctionId, razaoFalha);
+            if ("PENDENTE".equals(a.getStatus())) {
+                a.setStatus("ATIVO");
+                auctionRepository.save(a);
+                log.warn("Auction {} reativada após falha na transação. Razão: {}", auctionId, razaoFalha);
+            } else {
+                log.info("Auction {} não está PENDENTE (status={}), ignorando evento de falha.", auctionId, a.getStatus());
+            }
         });
         bidRepository.findById(bidId).ifPresent(b -> {
-            b.setStatus("ATIVO");
-            bidRepository.save(b);
-            log.warn("Bid {} reativada após falha na transação. Razão: {}", bidId, razaoFalha);
+            if ("PENDENTE".equals(b.getStatus())) {
+                b.setStatus("ATIVO");
+                bidRepository.save(b);
+                log.warn("Bid {} reativada após falha na transação. Razão: {}", bidId, razaoFalha);
+            } else {
+                log.info("Bid {} não está PENDENTE (status={}), ignorando evento de falha.", bidId, b.getStatus());
+            }
         });
     }
 

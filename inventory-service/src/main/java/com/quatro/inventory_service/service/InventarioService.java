@@ -55,6 +55,7 @@ public class InventarioService {
     }
 
     // --- READ ---
+    @Transactional(readOnly = true)
     public List<InventarioResponseDto> buscarInventarioPorUsuario(UUID userId) {
         List<Inventario> inventarioUsuario = inventarioRepository.findAllByUserId(userId);
         
@@ -63,6 +64,7 @@ public class InventarioService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public InventarioResponseDto buscarCartaEspecifica(UUID userId, UUID cartaId) {
         Inventario inventario = inventarioRepository.findByUserIdAndCartaId(userId, cartaId)
                 .orElseThrow(() -> new RuntimeException("Carta não encontrada no inventário do usuário."));

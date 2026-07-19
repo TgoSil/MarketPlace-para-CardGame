@@ -20,7 +20,7 @@ public class CartaRequestDto {
     @NotBlank(message = "O tipo da carta é obrigatório")
     private String tipo;
 
-    // Campos opcionais não precisam de anotações de validação de obrigatoriedade
+    @NotBlank(message = "A raridade da carta é obrigatória")
     private String raridade;
 
     @NotNull(message = "A vida da carta é obrigatória")
