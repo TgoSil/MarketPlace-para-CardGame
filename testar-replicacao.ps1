@@ -50,8 +50,8 @@ Write-Host ""
 foreach ($prefixo in $listaServicos.Keys) {
 
     $db          = $listaServicos[$prefixo]
-    $primary     = "$prefixo-service-db-primary"
-    $replica     = "$prefixo-service-db-replica"
+    $contA       = "$prefixo-service-db-primary"
+    $contB       = "$prefixo-service-db-replica"
 
     Write-Host "----- [$prefixo] -----" -ForegroundColor Yellow
 
@@ -64,21 +64,48 @@ foreach ($prefixo in $listaServicos.Keys) {
     }
 
     # 1) Containers estao "Up"?
-    $psPrimary = docker inspect $primary --format='{{.State.Status}}' 2>$null
-    $psReplica = docker inspect $replica --format='{{.State.Status}}' 2>$null
+    $psContA = docker inspect $contA --format='{{.State.Status}}' 2>$null
+    $psContB = docker inspect $contB --format='{{.State.Status}}' 2>$null
 
-    if ($psPrimary -eq "running" -and $psReplica -eq "running") {
+    if ($psContA -eq "running" -and $psContB -eq "running") {
         $status.ContainersUp = "PASS"
-        Write-Host "  [OK] primary e replica estao rodando" -ForegroundColor Green
+        Write-Host "  [OK] ambos os containers estao rodando" -ForegroundColor Green
     } else {
         $status.ContainersUp = "FALHOU"
-        Write-Host "  [FALHOU] primary=$psPrimary replica=$psReplica" -ForegroundColor Red
+        Write-Host "  [FALHOU] $contA=$psContA, $contB=$psContB" -ForegroundColor Red
         $resultados += [pscustomobject]$status
         Write-Host ""
         continue
     }
 
-    # 2) Primary enxerga o replica conectado?
+    # 2) Descobrir dinamicamente quem eh primary (f) e quem eh standby (t)
+    $recA = Run-PsqlPrimary -container $contA -db $db -sql "SELECT pg_is_in_recovery();"
+    $recB = Run-PsqlPrimary -container $contB -db $db -sql "SELECT pg_is_in_recovery();"
+    
+    $primary = ""
+    $replica = ""
+
+    if (($recA -match "^f$") -and ($recB -match "^t$")) {
+        $primary = $contA
+        $replica = $contB
+        Write-Host "  [INFO] Roles: Primary = $primary | Replica = $replica" -ForegroundColor DarkGray
+    } elseif (($recA -match "^t$") -and ($recB -match "^f$")) {
+        $primary = $contB
+        $replica = $contA
+        Write-Host "  [INFO] Roles invertidos: Primary = $primary | Replica = $replica" -ForegroundColor Magenta
+    } else {
+        $status.ReplicaEmStandby = "FALHOU"
+        Write-Host "  [FALHOU] Nao foi possivel determinar os papeis. $contA=$recA, $contB=$recB" -ForegroundColor Red
+        $resultados += [pscustomobject]$status
+        Write-Host ""
+        continue
+    }
+
+    # 3) Replica esta em modo standby? (Ja sabemos que sim, pois checamos no passo 2)
+    $status.ReplicaEmStandby = "PASS"
+    Write-Host "  [OK] replica esta em modo standby" -ForegroundColor Green
+
+    # 4) Primary enxerga o replica conectado?
     $repl = Run-PsqlPrimary -container $primary -db $db -sql "SELECT count(*) FROM pg_stat_replication;"
     if ($repl -match "^\d+$" -and [int]$repl -ge 1) {
         $status.ReplicaConectado = "PASS"
@@ -88,17 +115,7 @@ foreach ($prefixo in $listaServicos.Keys) {
         Write-Host "  [FALHOU] pg_stat_replication vazio ou erro: $repl" -ForegroundColor Red
     }
 
-    # 3) Replica esta em modo standby?
-    $recovery = Run-PsqlPrimary -container $replica -db $db -sql "SELECT pg_is_in_recovery();"
-    if ($recovery -match "^t$") {
-        $status.ReplicaEmStandby = "PASS"
-        Write-Host "  [OK] replica esta em modo standby (pg_is_in_recovery = t)" -ForegroundColor Green
-    } else {
-        $status.ReplicaEmStandby = "FALHOU"
-        Write-Host "  [FALHOU] resposta inesperada: $recovery" -ForegroundColor Red
-    }
-
-    # 4) Teste real de propagacao de dados
+    # 5) Teste real de propagacao de dados
     $marcador = "teste_$(Get-Random)"
     Run-PsqlPrimary -container $primary -db $db -sql "CREATE TABLE IF NOT EXISTS teste_replicacao(id serial, msg text);" | Out-Null
     Run-PsqlPrimary -container $primary -db $db -sql "INSERT INTO teste_replicacao(msg) VALUES ('$marcador');" | Out-Null
