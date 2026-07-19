@@ -9,7 +9,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.quatro.catalog_service.domain.dto.CartaEventDto;
 import com.quatro.catalog_service.domain.dto.CartaEvento;
 import com.quatro.catalog_service.domain.dto.CartaRequestDto;
 import com.quatro.catalog_service.domain.dto.CartaResponseDto;
@@ -32,6 +31,7 @@ public class CatalogService {
     private String topicoCartaEvento;
 
     // 1. Criar ou Atualizar uma carta
+    @Transactional
     public CartaResponseDto salvarOuAtualizarCarta(UUID id, CartaRequestDto requestDto) {
         cartas cartaParaSalvar;
         String acao; // Guardamos a ação para avisar o Kafka depois
@@ -69,6 +69,7 @@ public class CatalogService {
     }
 
     // 2. Exibir e Filtrar cartas (Permanece igual)
+    @Transactional(readOnly = true)
     public List<CartaResponseDto> filtrarCartas(String nome, String raridade, String tipo) {
         List<cartas> resultado;
 

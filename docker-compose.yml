@@ -15,18 +15,76 @@ services:
     networks:
       - rede-interna
 
-  auth-service-db:
-    image: postgres:18
-    container_name: auth-service-db
+  # ==========================================
+  # --- AUTH SERVICE DB ---
+  # ==========================================
+  auth-service-db-primary:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: auth-service-db-primary
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: db
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_DATABASE=db
     volumes:
-      - ./db_volumes/auth-service-db:/var/lib/postgresql
+      - ./db_volumes/auth-db-primary:/bitnami/postgresql
+    networks:
+      - rede-interna
+
+  auth-service-db-replica:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: auth-service-db-replica
+    restart: always
+    depends_on:
+      - auth-service-db-primary
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=auth-service-db-primary
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./db_volumes/auth-db-replica:/bitnami/postgresql
+    networks:
+      - rede-interna
+
+
+  auth-pgpool:
+    image: bitnamilegacy/pgpool:4.6.3-debian-12-r0
+    container_name: auth-pgpool
+    restart: always
+    depends_on:
+      - auth-service-db-primary
+      - auth-service-db-replica
+    entrypoint: ["bash", "/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh"]
+    environment:
+      - PGPOOL_BACKEND_NODES=0:auth-service-db-primary:5432,1:auth-service-db-replica:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ENABLE_LOAD_BALANCING=yes
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ADMIN_USERNAME=admin
+      - PGPOOL_ADMIN_PASSWORD=adminpassword
+      # --- Health check e failover automatico do primary ---
+      - PGPOOL_SR_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_TIMEOUT=10
+      - PGPOOL_HEALTH_CHECK_MAX_RETRIES=3
+      - PGPOOL_HEALTH_CHECK_RETRY_DELAY=1
+      - PGPOOL_FAILOVER_ON_BACKEND_ERROR=yes
     ports:
       - "5001:5432"
+    volumes:
+      - ./failover/failover.sh:/opt/bitnami/pgpool/scripts/failover.sh
+      - ./failover/entrypoint-wrapper.sh:/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh
+      - ./failover/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - rede-interna
 
@@ -35,7 +93,7 @@ services:
     container_name: auth-service
     restart: always
     depends_on:
-      - auth-service-db
+      - auth-pgpool
       - kafka
     environment:
       SPRING_DATASOURCE_URL: ${AUTH_SERVICE_SPRING_DATASOURCE_URL}
@@ -43,12 +101,14 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-
     ports:
       - "4001:4001"
     networks:
       - rede-interna
 
+  # ==========================================
+  # --- ORDER SERVICE DB (MONGO) ---
+  # ==========================================
   order-service-db:
     image: mongo
     container_name: order-service-db
@@ -74,16 +134,78 @@ services:
       - ME_CONFIG_MONGODB_URL=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@order-service-db:27017/
     depends_on:
       - order-service-db
-  inventory-service-db:
-    image: postgres:18
-    container_name: inventory-service-db
+    networks:
+      - rede-interna
+
+  # ==========================================
+  # --- INVENTORY SERVICE DB ---
+  # ==========================================
+  inventory-service-db-primary:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: inventory-service-db-primary
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: inventory_db
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_DATABASE=inventory_db
+    volumes:
+      - ./db_volumes/inventory-db-primary:/bitnami/postgresql
+    networks:
+      - rede-interna
+
+  inventory-service-db-replica:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: inventory-service-db-replica
+    restart: always
+    depends_on:
+      - inventory-service-db-primary
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=inventory-service-db-primary
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./db_volumes/inventory-db-replica:/bitnami/postgresql
+    networks:
+      - rede-interna
+
+  inventory-pgpool:
+    image: bitnamilegacy/pgpool:4.6.3-debian-12-r0
+    container_name: inventory-pgpool
+    restart: always
+    depends_on:
+      - inventory-service-db-primary
+      - inventory-service-db-replica
+    entrypoint: ["bash", "/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh"]
+    environment:
+      - PGPOOL_BACKEND_NODES=0:inventory-service-db-primary:5432,1:inventory-service-db-replica:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ENABLE_LOAD_BALANCING=yes
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ADMIN_USERNAME=admin
+      - PGPOOL_ADMIN_PASSWORD=adminpassword
+      # --- Health check e failover automatico do primary ---
+      - PGPOOL_SR_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_TIMEOUT=10
+      - PGPOOL_HEALTH_CHECK_MAX_RETRIES=3
+      - PGPOOL_HEALTH_CHECK_RETRY_DELAY=1
+      - PGPOOL_FAILOVER_ON_BACKEND_ERROR=yes
     ports:
       - "5002:5432"
+    volumes:
+      - ./failover/failover.sh:/opt/bitnami/pgpool/scripts/failover.sh
+      - ./failover/entrypoint-wrapper.sh:/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh
+      - ./failover/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - rede-interna
 
@@ -92,7 +214,7 @@ services:
     container_name: inventory-service
     restart: always
     depends_on:
-      - inventory-service-db
+      - inventory-pgpool
       - kafka
     environment:
       SPRING_DATASOURCE_URL: ${INVENTORY_SERVICE_SPRING_DATASOURCE_URL}
@@ -104,14 +226,73 @@ services:
     networks:
       - rede-interna
 
-  rewards-service-db:
-    image: postgres:18
-    container_name: rewards-service-db
+  # ==========================================
+  # --- REWARDS SERVICE DB ---
+  # ==========================================
+  rewards-service-db-primary:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: rewards-service-db-primary
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: rewards_db
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_DATABASE=rewards_db
+    volumes:
+      - ./db_volumes/rewards-db-primary:/bitnami/postgresql
+    networks:
+      - rede-interna
+
+  rewards-service-db-replica:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: rewards-service-db-replica
+    restart: always
+    depends_on:
+      - rewards-service-db-primary
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=rewards-service-db-primary
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./db_volumes/rewards-db-replica:/bitnami/postgresql
+    networks:
+      - rede-interna
+
+  rewards-pgpool:
+    image: bitnamilegacy/pgpool:4.6.3-debian-12-r0
+    container_name: rewards-pgpool
+    restart: always
+    depends_on:
+      - rewards-service-db-primary
+      - rewards-service-db-replica
+    entrypoint: ["bash", "/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh"]
+    environment:
+      - PGPOOL_BACKEND_NODES=0:rewards-service-db-primary:5432,1:rewards-service-db-replica:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ENABLE_LOAD_BALANCING=yes
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ADMIN_USERNAME=admin
+      - PGPOOL_ADMIN_PASSWORD=adminpassword
+      # --- Health check e failover automatico do primary ---
+      - PGPOOL_SR_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_TIMEOUT=10
+      - PGPOOL_HEALTH_CHECK_MAX_RETRIES=3
+      - PGPOOL_HEALTH_CHECK_RETRY_DELAY=1
+      - PGPOOL_FAILOVER_ON_BACKEND_ERROR=yes
+    volumes:
+      - ./failover/failover.sh:/opt/bitnami/pgpool/scripts/failover.sh
+      - ./failover/entrypoint-wrapper.sh:/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh
+      - ./failover/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - rede-interna
 
@@ -120,7 +301,7 @@ services:
     container_name: rewards-service
     restart: always
     depends_on:
-      - rewards-service-db
+      - rewards-pgpool
       - kafka
     environment:
       SPRING_DATASOURCE_URL: ${REWARDS_SERVICE_SPRING_DATASOURCE_URL}
@@ -132,14 +313,73 @@ services:
     networks:
       - rede-interna
   
-  profile-service-db:
-    image: postgres:18
-    container_name: profile-service-db
+  # ==========================================
+  # --- PROFILE SERVICE DB ---
+  # ==========================================
+  profile-service-db-primary:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: profile-service-db-primary
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: profile_db
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_DATABASE=profile_db
+    volumes:
+      - ./db_volumes/profile-db-primary:/bitnami/postgresql
+    networks:
+      - rede-interna
+
+  profile-service-db-replica:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: profile-service-db-replica
+    restart: always
+    depends_on:
+      - profile-service-db-primary
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=profile-service-db-primary
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_USERNAME=${POSTGRES_USER}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./db_volumes/profile-db-replica:/bitnami/postgresql
+    networks:
+      - rede-interna
+
+  profile-pgpool:
+    image: bitnamilegacy/pgpool:4.6.3-debian-12-r0
+    container_name: profile-pgpool
+    restart: always
+    depends_on:
+      - profile-service-db-primary
+      - profile-service-db-replica
+    entrypoint: ["bash", "/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh"]
+    environment:
+      - PGPOOL_BACKEND_NODES=0:profile-service-db-primary:5432,1:profile-service-db-replica:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ENABLE_LOAD_BALANCING=yes
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ADMIN_USERNAME=admin
+      - PGPOOL_ADMIN_PASSWORD=adminpassword
+      # --- Health check e failover automatico do primary ---
+      - PGPOOL_SR_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_TIMEOUT=10
+      - PGPOOL_HEALTH_CHECK_MAX_RETRIES=3
+      - PGPOOL_HEALTH_CHECK_RETRY_DELAY=1
+      - PGPOOL_FAILOVER_ON_BACKEND_ERROR=yes
+    volumes:
+      - ./failover/failover.sh:/opt/bitnami/pgpool/scripts/failover.sh
+      - ./failover/entrypoint-wrapper.sh:/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh
+      - ./failover/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - rede-interna
 
@@ -148,7 +388,7 @@ services:
     container_name: profile-service
     restart: always
     depends_on:
-      - profile-service-db
+      - profile-pgpool
       - kafka
     environment:
       SPRING_DATASOURCE_URL: ${PROFILE_SERVICE_SPRING_DATASOURCE_URL}
@@ -159,31 +399,85 @@ services:
       - "4007:4007"
     networks:
       - rede-interna
-  catalog-service-db:
-      image: postgres:18
-      container_name: catalog-service-db
-      environment:
-        POSTGRES_USER: ${POSTGRES_USER} 
-        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-        POSTGRES_DB: catalog_db
-      ports:
-        - "5003:5432"
-      networks: 
-        - rede-interna
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    container_name: zookeeper
+
+  # ==========================================
+  # --- CATALOG SERVICE DB ---
+  # ==========================================
+  catalog-service-db-primary:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: catalog-service-db-primary
+    restart: always
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=${POSTGRES_USER} 
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRESQL_DATABASE=catalog_db
+    volumes:
+      - ./db_volumes/catalog-db-primary:/bitnami/postgresql
+    networks: 
+      - rede-interna
+
+  catalog-service-db-replica:
+    image: bitnamilegacy/postgresql:15.8.0-debian-12-r3
+    container_name: catalog-service-db-replica
+    restart: always
+    depends_on:
+      - catalog-service-db-primary
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=catalog-service-db-primary
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_USERNAME=${POSTGRES_USER} 
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./db_volumes/catalog-db-replica:/bitnami/postgresql
+    networks: 
+      - rede-interna
+
+  catalog-pgpool:
+    image: bitnamilegacy/pgpool:4.6.3-debian-12-r0
+    container_name: catalog-pgpool
+    restart: always
+    depends_on:
+      - catalog-service-db-primary
+      - catalog-service-db-replica
+    entrypoint: ["bash", "/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh"]
+    environment:
+      - PGPOOL_BACKEND_NODES=0:catalog-service-db-primary:5432,1:catalog-service-db-replica:5432
+      - PGPOOL_SR_CHECK_USER=${POSTGRES_USER}
+      - PGPOOL_SR_CHECK_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ENABLE_LOAD_BALANCING=yes
+      - PGPOOL_POSTGRES_USERNAME=${POSTGRES_USER}
+      - PGPOOL_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_ADMIN_USERNAME=admin
+      - PGPOOL_ADMIN_PASSWORD=adminpassword
+      # --- Health check e failover automatico do primary ---
+      - PGPOOL_SR_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_PERIOD=5
+      - PGPOOL_HEALTH_CHECK_TIMEOUT=10
+      - PGPOOL_HEALTH_CHECK_MAX_RETRIES=3
+      - PGPOOL_HEALTH_CHECK_RETRY_DELAY=1
+      - PGPOOL_FAILOVER_ON_BACKEND_ERROR=yes
+    ports:
+      - "5003:5432"
+    volumes:
+      - ./failover/failover.sh:/opt/bitnami/pgpool/scripts/failover.sh
+      - ./failover/entrypoint-wrapper.sh:/opt/bitnami/pgpool/scripts/entrypoint-wrapper.sh
+      - ./failover/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - rede-interna
+
   catalog-service:
     build: ./catalog-service
     container_name: catalog-service
     restart: always
     depends_on:
-      - catalog-service-db
+      - catalog-pgpool
       - kafka
     environment:
       SPRING_DATASOURCE_URL: ${CATALOG_SERVICE_SPRING_DATASOURCE_URL}
@@ -194,6 +488,19 @@ services:
       - "4005:4005"
     networks:
       - rede-interna
+
+  # ==========================================
+  # --- INFRASTRUCTURE (ZOOKEEPER & KAFKA) ---
+  # ==========================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - rede-interna
+
   kafka:
     image: apache/kafka:3.9.0
     container_name: kafka
@@ -214,13 +521,13 @@ services:
   kafka-ui:
     image: kafbat/kafka-ui:aa21129
     ports:
-      -  "8080:8080"
+      - "8080:8080"
     environment:
-      -  DYNAMIC_CONFIG_ENABLED=true
+      - DYNAMIC_CONFIG_ENABLED=true
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
     networks:
-      -  rede-interna
+      - rede-interna
 
 networks:
   rede-interna:
