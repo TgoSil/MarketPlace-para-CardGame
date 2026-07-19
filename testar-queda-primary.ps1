@@ -109,8 +109,8 @@ $resultados = @()
 foreach ($prefixo in $listaServicos.Keys) {
 
     $db        = $listaServicos[$prefixo]
-    $primary   = "$prefixo-service-db-primary"
-    $replica   = "$prefixo-service-db-replica"
+    $contA     = "$prefixo-service-db-primary"
+    $contB     = "$prefixo-service-db-replica"
 
     $r = [ordered]@{
         Servico             = $prefixo
@@ -127,16 +127,38 @@ foreach ($prefixo in $listaServicos.Keys) {
     # -----------------------------------------
     Print-Step "FASE 1: Verificacao pre-queda"
 
-    $statusPrimary = Container-Status $primary
-    $statusReplica = Container-Status $replica
+    $statusContA = Container-Status $contA
+    $statusContB = Container-Status $contB
 
-    if ($statusPrimary -ne "running" -or $statusReplica -ne "running") {
-        Print-Fail "Primary ($statusPrimary) ou replica ($statusReplica) nao estao rodando. Pulando servico."
+    if ($statusContA -ne "running" -or $statusContB -ne "running") {
+        Print-Fail "Containers nao estao rodando. Pulando servico."
         $r.PreQueda_OK = "FALHOU"
         $resultados += [pscustomobject]$r
         continue
     }
-    Print-Ok "Primary e replica em execucao"
+
+    $recA = Exec-Psql -container $contA -db $db -sql "SELECT pg_is_in_recovery();"
+    $recB = Exec-Psql -container $contB -db $db -sql "SELECT pg_is_in_recovery();"
+    
+    $primary = ""
+    $replica = ""
+
+    if (($recA -match "^f$") -and ($recB -match "^t$")) {
+        $primary = $contA
+        $replica = $contB
+        Print-Info "Roles: Primary = $primary | Replica = $replica"
+    } elseif (($recA -match "^t$") -and ($recB -match "^f$")) {
+        $primary = $contB
+        $replica = $contA
+        Print-Info "Roles invertidos: Primary = $primary | Replica = $replica"
+    } else {
+        Print-Fail "Nao foi possivel determinar os papeis. $contA=$recA, $contB=$recB"
+        $r.PreQueda_OK = "FALHOU"
+        $resultados += [pscustomobject]$r
+        continue
+    }
+
+    Print-Ok "Primary e replica em execucao e identificados"
 
     $marcadorPreQueda = "pre_queda_primary_$(Get-Random)"
     Exec-Psql -container $primary -db $db -sql "CREATE TABLE IF NOT EXISTS teste_failover_primary(id serial, fase text, msg text);" | Out-Null

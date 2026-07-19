@@ -120,8 +120,8 @@ $resultados = @()
 foreach ($prefixo in $listaServicos.Keys) {
 
     $db        = $listaServicos[$prefixo]
-    $primary   = "$prefixo-service-db-primary"
-    $replica   = "$prefixo-service-db-replica"
+    $contA     = "$prefixo-service-db-primary"
+    $contB     = "$prefixo-service-db-replica"
 
     $r = [ordered]@{
         Servico               = $prefixo
@@ -138,24 +138,38 @@ foreach ($prefixo in $listaServicos.Keys) {
     # ─────────────────────────────────────────
     Print-Step "FASE 1: Verificacao pre-queda"
 
-    if (-not (Container-Running $primary) -or -not (Container-Running $replica)) {
-        Print-Fail "Primary ou replica nao estao rodando. Pulando servico."
+    if (-not (Container-Running $contA) -or -not (Container-Running $contB)) {
+        Print-Fail "Containers nao estao rodando. Pulando servico."
         $r.PreQueda_OK = "FALHOU"
         $resultados += [pscustomobject]$r
         continue
     }
-    Print-Ok "Primary e replica em execucao"
 
-    # Replica em standby?
-    $recovery = Exec-Psql -container $replica -db $db -sql "SELECT pg_is_in_recovery();"
-    if ($recovery -match "^t$") {
-        Print-Ok "Replica em modo standby (pg_is_in_recovery = t)"
+    $recA = Exec-Psql -container $contA -db $db -sql "SELECT pg_is_in_recovery();"
+    $recB = Exec-Psql -container $contB -db $db -sql "SELECT pg_is_in_recovery();"
+    
+    $primary = ""
+    $replica = ""
+
+    if (($recA -match "^f$") -and ($recB -match "^t$")) {
+        $primary = $contA
+        $replica = $contB
+        Print-Info "Roles: Primary = $primary | Replica = $replica"
+    } elseif (($recA -match "^t$") -and ($recB -match "^f$")) {
+        $primary = $contB
+        $replica = $contA
+        Print-Info "Roles invertidos: Primary = $primary | Replica = $replica"
     } else {
-        Print-Fail "Replica NAO esta em standby. Resposta: $recovery"
+        Print-Fail "Nao foi possivel determinar os papeis. $contA=$recA, $contB=$recB"
         $r.PreQueda_OK = "FALHOU"
         $resultados += [pscustomobject]$r
         continue
     }
+
+    Print-Ok "Primary e replica em execucao e identificados"
+
+    # Replica em standby? (Ja sabemos que sim, checado na deteccao acima)
+    Print-Ok "Replica em modo standby (pg_is_in_recovery = t)"
 
     # Primary ve replica conectada?
     $replCount = Exec-Psql -container $primary -db $db -sql "SELECT count(*) FROM pg_stat_replication;"
