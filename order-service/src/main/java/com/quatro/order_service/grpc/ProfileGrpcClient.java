@@ -35,7 +35,6 @@ public class ProfileGrpcClient {
             return response.getPossuiSaldo();
         } catch (Exception e) {
             log.error("Erro ao comunicar com profile-service via gRPC: {}", e.getMessage());
-            // Em caso de falha de comunicação, estamos bloqueando e retornando false.
             return false;
         }
     }

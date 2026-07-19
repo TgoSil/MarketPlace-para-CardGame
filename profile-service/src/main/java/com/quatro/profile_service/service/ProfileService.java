@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 public class ProfileService {
     private final CarteiraRepository repository;
 
-    // -- UPDATE --
     @Transactional
     public CarteiraResponseDto adicionarNaCarteira(UUID userId, CarteiraRequestDto request){
         int quantidadeParaAdicionar = request.getDinheiro() != null ? request.getDinheiro() : 0;
@@ -43,7 +42,6 @@ public class ProfileService {
         return converterParaDto(salvo);
     }
 
-    // -- CREATE --
     @Transactional
     public CarteiraResponseDto criarCarteira(UUID userId, String username){
         Optional<Carteira> carteiraExistente = repository.findById(userId);
@@ -64,7 +62,6 @@ public class ProfileService {
         return converterParaDto(salvo);
     }
 
-    // -- READ --
     public CarteiraResponseDto buscarCarteira(UUID userId){
         Optional<Carteira> carteiraExistente = repository.findById(userId);
 
@@ -89,7 +86,6 @@ public class ProfileService {
             .collect(Collectors.toList());
     }
 
-    // -- DELETE --
     @Transactional
     public boolean removerUsuario(UUID userId){
         Optional<Carteira> carteiraExistente = repository.findById(userId);
@@ -122,17 +118,14 @@ public class ProfileService {
         return converterParaDto(salvo);
     }
 
-    // -- TRANSFERÊNCIA (gRPC) --
     @Transactional
     public void processarTransferencia(UUID compradorId, UUID vendedorId, double precoCarta) {
-        // Converte o double recebido pelo gRPC para o Integer (centavos) usado no banco de dados
         int valorTransferencia = (int) Math.round(precoCarta * 100);
 
         if (valorTransferencia <= 0) {
             throw new IllegalArgumentException("O valor da transferência deve ser maior que zero.");
         }
 
-        // 1. Valida e debita do Comprador
         Carteira carteiraComprador = repository.findById(compradorId)
                 .orElseThrow(() -> new RuntimeException("Carteira do comprador não encontrada."));
 
@@ -143,7 +136,6 @@ public class ProfileService {
         carteiraComprador.setDinheiro(carteiraComprador.getDinheiro() - valorTransferencia);
         repository.save(carteiraComprador);
 
-        // 2. Valida e credita no Vendedor
         Carteira carteiraVendedor = repository.findById(vendedorId)
                 .orElseThrow(() -> new RuntimeException("Carteira do vendedor não encontrada."));
 

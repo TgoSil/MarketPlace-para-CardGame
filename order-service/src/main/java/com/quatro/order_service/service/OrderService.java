@@ -38,12 +38,9 @@ public class OrderService {
     private final com.quatro.order_service.grpc.InventoryGrpcClient inventoryGrpcClient;
     private final com.quatro.order_service.grpc.ProfileGrpcClient profileGrpcClient;
 
-    // ========================
-    //  CRIAÇÃO
-    // ========================
+
 
     public AuctionResponseDto createAuction(UUID userId, AuctionRequestDto request) {
-        // TODO (gRPC): Validar se usuário possui a carta antes de criar Auction
         boolean possuiCarta = inventoryGrpcClient.validarPosseCarta(userId, request.getIdCarta());
         if (!possuiCarta) {
              throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Usuário não possui esta carta.");
@@ -70,8 +67,8 @@ public class OrderService {
                 salvo.getIdUser(),
                 salvo.getPrecoMinimo(),
                 salvo.getPrecoTeto(),
-                null,   // limitePagamento não se aplica a Auction
-                null,   // perfilCompra não se aplica a Auction
+                null,
+                null,
                 salvo.getExpiraEm()
         ));
 
@@ -79,7 +76,6 @@ public class OrderService {
     }
 
     public BidResponseDto createBid(UUID userId, BidRequestDto request) {
-        // TODO (gRPC): Validar se usuário possui saldo suficiente antes de criar Bid
         boolean possuiSaldo = profileGrpcClient.validarSaldoUsuario(userId, request.getLimitePagamento());
         if (!possuiSaldo) {
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Saldo insuficiente.");
@@ -104,8 +100,8 @@ public class OrderService {
                 salvo.getId(),
                 salvo.getIdCarta(),
                 salvo.getIdUser(),
-                null,   // precoMinimo não se aplica a Bid
-                null,   // precoTeto não se aplica a Bid
+                null,
+                null,
                 salvo.getLimitePagamento(),
                 salvo.getPerfilCompra(),
                 salvo.getExpiraEm()
@@ -114,9 +110,7 @@ public class OrderService {
         return mapBidToResponse(salvo);
     }
 
-    // ========================
-    //  CONSULTA
-    // ========================
+
 
     public Map<String, Object> getOrdersByUser(UUID userId) {
         List<AuctionResponseDto> auctions = auctionRepository.findByIdUser(userId)
@@ -138,12 +132,9 @@ public class OrderService {
                 .stream().map(this::mapBidToResponse).toList();
     }
 
-    // ========================
-    //  CANCELAMENTO (iniciado pelo usuário)
-    // ========================
+
 
     public void cancelOrder(UUID orderId, UUID userId) {
-        // Tenta encontrar como Auction
         var auctionOpt = auctionRepository.findById(orderId);
         if (auctionOpt.isPresent()) {
             Auction auction = auctionOpt.get();
@@ -160,7 +151,6 @@ public class OrderService {
             return;
         }
 
-        // Tenta encontrar como Bid
         var bidOpt = bidRepository.findById(orderId);
         if (bidOpt.isPresent()) {
             Bid bid = bidOpt.get();
@@ -180,9 +170,7 @@ public class OrderService {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem não encontrada.");
     }
 
-    // ========================
-    //  ATUALIZAÇÃO DE STATUS (via Kafka - Matching / Settlement)
-    // ========================
+
 
     public void marcarComoPendente(UUID auctionId, UUID bidId) {
         auctionRepository.findById(auctionId).ifPresent(a -> {
@@ -215,9 +203,7 @@ public class OrderService {
     }
 
     public void marcarComoFalho(UUID auctionId, UUID bidId, String razaoFalha) {
-        // O settlement reporta a falha com uma razão descritiva.
-        // Ambas as ordens voltam a ATIVO para serem re-casadas,
-        // já que a transação falhou mas as intenções originais podem ainda ser válidas.
+
         auctionRepository.findById(auctionId).ifPresent(a -> {
             if ("PENDENTE".equals(a.getStatus())) {
                 a.setStatus("ATIVO");
@@ -238,35 +224,29 @@ public class OrderService {
         });
     }
 
-    // ========================
-    //  EXPIRAÇÃO (chamada pelo Scheduler)
-    // ========================
+
 
     public void marcarComoCanceladaExterna(UUID orderId, String razao) {
         log.info("Recebido cancelamento externo para ordem {}. Razão: {}", orderId, razao);
         
-        // Tenta como Auction
         auctionRepository.findById(orderId).ifPresent(a -> {
             if ("ATIVO".equals(a.getStatus())) {
-                a.setStatus(razao); // "EXPIRADA" ou "CANCELADA"
+                a.setStatus(razao);
                 auctionRepository.save(a);
                 log.info("Auction {} marcada como {}", orderId, razao);
             }
         });
 
-        // Tenta como Bid
         bidRepository.findById(orderId).ifPresent(b -> {
             if ("ATIVO".equals(b.getStatus())) {
-                b.setStatus(razao); // "EXPIRADA" ou "CANCELADA"
+                b.setStatus(razao);
                 bidRepository.save(b);
                 log.info("Bid {} marcada como {}", orderId, razao);
             }
         });
     }
 
-    // ========================
-    //  REMOÇÃO FÍSICA (administrativo)
-    // ========================
+
 
     public void deleteOrder(UUID orderId) {
         if (auctionRepository.existsById(orderId)) {
@@ -282,9 +262,7 @@ public class OrderService {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem não encontrada para remoção.");
     }
 
-    // ========================
-    //  HELPERS
-    // ========================
+
 
     private void validarDono(UUID donoOrdem, UUID solicitante) {
         if (!donoOrdem.equals(solicitante)) {

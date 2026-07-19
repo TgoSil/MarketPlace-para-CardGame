@@ -33,12 +33,10 @@ public class AuthService {
     }
 
     public Boolean checkEmailValidity(RegisterRequestDto registerRequestDto) {
-        // Podem haver outras validações aqui tmb
         return !userService.existsByEmail(registerRequestDto.getEmail());
     }
 
     public Boolean checkUsernameValidity(RegisterRequestDto registerRequestDto) {
-        // Podem haver outras validações aqui tmb
         return !userService.existsByUsername(registerRequestDto.getUsername());
     }
 

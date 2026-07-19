@@ -26,7 +26,7 @@ public class SettlementService {
                 .cartaId(request.getCartaId())
                 .preco(request.getPreco())
                 .quantidade(request.getQuantidade())
-                .status("INITIATED") // Estado inicial fixado na criação
+                .status("INITIATED")
                 .build();
 
         Transacao transacaoSalva = transacaoRepository.save(transacao);
@@ -44,7 +44,6 @@ public class SettlementService {
         Transacao transacaoExistente = transacaoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transação não encontrada para edição."));
 
-        // Atualizando os dados permitidos
         transacaoExistente.setOrdemCompraId(request.getOrdemCompraId());
         transacaoExistente.setOrdemVendaId(request.getOrdemVendaId());
         transacaoExistente.setCompradorId(request.getCompradorId());
@@ -53,8 +52,6 @@ public class SettlementService {
         transacaoExistente.setPreco(request.getPreco());
         transacaoExistente.setQuantidade(request.getQuantidade());
         
-        // Nota: O status geralmente só é alterado pelo fluxo de orquestração (gRPC/Saga),
-        // por isso não permitimos que o Request genérico sobrescreva o status aqui.
 
         Transacao transacaoAtualizada = transacaoRepository.save(transacaoExistente);
         return mapearParaResponse(transacaoAtualizada);
@@ -67,7 +64,6 @@ public class SettlementService {
         transacaoRepository.delete(transacao);
     }
 
-    // Método auxiliar privado para manter o código limpo e evitar repetição
     private TransacaoResponseDto mapearParaResponse(Transacao transacao) {
         return TransacaoResponseDto.builder()
                 .id(transacao.getId())

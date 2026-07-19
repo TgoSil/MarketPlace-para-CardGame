@@ -37,7 +37,6 @@ public class RewardsService {
     private final BoosterService boosterService;
     private final RewardsEventPublisher eventPublisher;
 
-    // Ordem dos tiers para o upgrade por ciclo
     private static final List<String> ORDEM_TIERS =
             List.of("BASICO", "NORMAL", "ESPECIAL", "EPICO", "MITICO", "LENDARIO");
 

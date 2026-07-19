@@ -27,11 +27,9 @@ import lombok.RequiredArgsConstructor;
 public class CatalogController {
     private final CatalogService catalogService;
 
-    // 1. Criar uma nova carta
     // Rota: POST http://localhost:4004/catalog/carta
     @PostMapping("/carta")
     public ResponseEntity<CartaResponseDto> criarCarta(@Valid @RequestBody CartaRequestDto requestDto, @RequestHeader("User-cargo") String cargo) {
-        // Passamos 'null' como ID para forçar a criação
         if(!cargo.equals("ADMIN")){
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -40,7 +38,6 @@ public class CatalogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(novaCarta);
     }
 
-    // 2. Editar uma carta existente
     // Rota: PUT http://localhost:4004/catalog/carta/123e4567-e89b-12d3-a456-426614174000
     @PutMapping("/carta/{id}")
     public ResponseEntity<CartaResponseDto> editarCarta(
@@ -51,16 +48,12 @@ public class CatalogController {
         if(!cargo.equals("ADMIN")){
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        // Passamos o ID recebido na URL para forçar a atualização daquela carta específica
         CartaResponseDto cartaAtualizada = catalogService.salvarOuAtualizarCarta(id, requestDto);
         
-        // Retorna HTTP 200 (OK) quando a atualização é bem-sucedida
         return ResponseEntity.ok(cartaAtualizada);
     
     }
 
-    // 2. Exibir e Filtrar cartas
-    // Rotas possíveis:
     // GET http://localhost:4004/catalog/carta
     // GET http://localhost:4004/catalog/carta?nome=Dragao
     // GET http://localhost:4004/catalog/carta?raridade=Rara
@@ -72,11 +65,9 @@ public class CatalogController {
         
         List<CartaResponseDto> cartas = catalogService.filtrarCartas(nome, raridade, tipo);
         
-        // Retorna HTTP 200 (OK) com a lista resultante (que pode ser vazia, mas não dará erro)
         return ResponseEntity.ok(cartas);
     }
 
-    // 3. Remover uma carta pelo ID
     // Rota: DELETE http://localhost:4004/catalog/carta/123e4567-e89b-12d3-a456-426614174000
     @DeleteMapping("/carta/{cartaId}")
     public ResponseEntity<Void> removerCarta(@PathVariable UUID cartaId, @RequestHeader("User-cargo") String cargo) {
@@ -85,7 +76,6 @@ public class CatalogController {
         }
         catalogService.removerCarta(cartaId);
         
-        // Retorna HTTP 204 (No Content) avisando que deu certo, mas a resposta não tem corpo
         return ResponseEntity.noContent().build();
     }
 }

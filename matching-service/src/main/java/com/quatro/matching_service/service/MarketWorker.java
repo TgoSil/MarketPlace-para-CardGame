@@ -32,7 +32,6 @@ public class MarketWorker {
     private final StringRedisTemplate redisTemplate;
     private final RoutingService routingService;
 
-    // Executa o Tick a cada 2 segundos
     @Scheduled(fixedRate = 2000)
     public void runMarketTick() {
         faseAPensamentoRobos();
@@ -45,10 +44,8 @@ public class MarketWorker {
             BidInfo bid = marketStateService.getBidInfo(bidId);
             if (bid == null) continue;
 
-            // Verifica se o Bid expirou
             if (bid.expiraEm() != null && Instant.now().isAfter(bid.expiraEm())) {
                 log.info("Bid {} expirou. Cancelando intenção...", bidId);
-                // Remove das filas de leilão
                 for (UUID auctionId : bid.salasAtuais()) {
                     marketStateService.removeBidFromAuction(auctionId, bidId);
                 }
@@ -59,13 +56,11 @@ public class MarketWorker {
                 continue;
             }
 
-            // Se não está em nenhuma sala, tenta entrar agora (útil para bids que chegaram antes da auction)
             if (bid.salasAtuais().isEmpty()) {
                 routingService.rotearNovoBid(bid);
             }
         }
 
-        // 2. Resolução Instantânea do Proxy Bidding (Por Sala de Leilão)
         Set<UUID> auctionsAtivas = marketStateService.getActiveAuctions();
         for (UUID auctionId : auctionsAtivas) {
             AuctionInfo auction = marketStateService.getAuctionInfo(auctionId);
@@ -114,16 +109,13 @@ public class MarketWorker {
                     }
                 }
 
-                // Proteção: não deixar o preço cair abaixo do mínimo
                 if (winningPrice.compareTo(minimo) < 0) {
                     winningPrice = minimo;
                 }
 
-                // Define o preço vencedor real
                 marketStateService.updateBidInAuction(auctionId, highestBidder.idBid(), winningPrice);
                 log.info("Proxy Bidding na sala {}: Robô {} assumiu a liderança com {}", auctionId, highestBidder.idBid(), winningPrice);
                 
-                // Zera o score dos perdedores (para garantir que o ZREVRANGE do script Lua pegue o vencedor)
                 for (String bId : robotIds) {
                     if (!bId.equals(highestBidder.idBid().toString())) {
                         marketStateService.updateBidInAuction(auctionId, UUID.fromString(bId), BigDecimal.ZERO);
@@ -149,10 +141,6 @@ public class MarketWorker {
     }
 
     private void executarMatchAtomico(AuctionInfo auction) {
-        // Lua Script: 
-        // 1. Pega o maior score (zrevrange)
-        // 2. Apaga a fila e as infos
-        // Retorna o vencedor e o valor pago, ou null
         String luaScript = """
             local auctionId = KEYS[1]
             local top = redis.call('ZREVRANGE', 'auction:' .. auctionId .. ':bids', 0, 0, 'WITHSCORES')
@@ -198,10 +186,8 @@ public class MarketWorker {
 
             log.info("MATCH! Auction {} vencida pelo Robô {} pagando {}", auction.idAuction(), winnerId, valor);
             
-            // Pega infos do robô vencedor (Double Spend logic: remove de outras filas depois)
             BidInfo winnerBid = marketStateService.getBidInfo(winnerId);
             if (winnerBid != null) {
-                // Emite o evento final
                 LeilaoConcluidoEvent evento = new LeilaoConcluidoEvent(
                         auction.idAuction(),
                         winnerId,
@@ -212,7 +198,6 @@ public class MarketWorker {
                 );
                 eventPublisher.publicarLeilaoConcluido(evento);
                 
-                // Limpa o robô do Redis (ele já comprou a carta)
                 marketStateService.removeBid(winnerId);
             }
         }

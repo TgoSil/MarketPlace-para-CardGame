@@ -33,7 +33,6 @@ public class SettlementOrchestrator {
 
     public void processarLiquidacao(Transacao transacao) {
         
-        // --- 1. ETAPA DE DINHEIRO (Profile Service) ---
         TransfereDinheiroRequest moneyReq = TransfereDinheiroRequest.newBuilder()
                 .setIdUser1(transacao.getVendedorId().toString())
                 .setIdUser2(transacao.getCompradorId().toString())
@@ -50,10 +49,8 @@ public class SettlementOrchestrator {
             return;
         }
 
-        // Salva o checkpoint de que o dinheiro já foi movimentado
         atualizarStatus(transacao, "DINHEIRO_TRANSFERIDO");
 
-        // --- 2. ETAPA DE CARTAS (Inventory Service) ---
         TransfereCartaRequest cardReq = TransfereCartaRequest.newBuilder()
                 .setIdCarta(transacao.getCartaId().toString())
                 .setIdUser1(transacao.getVendedorId().toString())
@@ -68,21 +65,17 @@ public class SettlementOrchestrator {
         if (!cardRes.getSucesso()) {
             log.warn("Transação Falhou no Inventory Service: {}", cardRes.getMensagem());
             
-            // ATENÇÃO: Como o dinheiro já foi transferido na etapa 1, 
-            // precisamos de uma transação compensatória (Rollback) aqui antes de falhar.
             estornarDinheiro(transacao);
             
             falharTransacao(transacao, "Falha no inventário: " + cardRes.getMensagem() + " (Estorno realizado)");
             return;
         }
 
-        // --- 3. CONCLUSÃO ---
         log.info("Transação {} liquidada com sucesso em ambos os serviços!", transacao.getId());
         atualizarStatus(transacao, TransacaoEvent.STATUS_CONCLUIDA);
         publicarEventoFinal(transacao, TransacaoEvent.STATUS_CONCLUIDA);
     }
 
-    // --- MÉTODOS AUXILIARES ---
 
     private void atualizarStatus(Transacao transacao, String novoStatus) {
         transacao.setStatus(novoStatus);
@@ -115,9 +108,7 @@ public class SettlementOrchestrator {
     private void estornarDinheiro(Transacao transacao) {
         log.info("Iniciando estorno para a transação {}. Devolvendo fundos ao comprador.", transacao.getId());
         
-        // Invertendo os papéis para o estorno: 
-        // idUser2 (Origem) passa a ser o Vendedor, que devolve o dinheiro.
-        // idUser1 (Destino) passa a ser o Comprador, que recebe de volta.
+
         TransfereDinheiroRequest rollbackReq = TransfereDinheiroRequest.newBuilder()
                 .setIdUser1(transacao.getCompradorId().toString()) 
                 .setIdUser2(transacao.getVendedorId().toString())  
@@ -132,12 +123,10 @@ public class SettlementOrchestrator {
             if (rollbackRes.getSucesso()) {
                 log.info("Estorno contábil realizado com sucesso para a transação {}", transacao.getId());
             } else {
-                // Falha lógica (ex: o vendedor não tinha mais saldo para devolver)
                 log.error("FALHA CRÍTICA NO ESTORNO da transação {}: {}", transacao.getId(), rollbackRes.getMensagem());
                 atualizarStatus(transacao, "ROLLBACK_FAILED");
             }
         } catch (Exception e) {
-            // Falha de infraestrutura (ex: o profile-service caiu durante o estorno)
             log.error("Erro de comunicação RPC ao tentar realizar o estorno da transação {}", transacao.getId(), e);
             atualizarStatus(transacao, "ROLLBACK_FAILED");
         }

@@ -47,7 +47,7 @@ public class IntencaoLeilaoConsumer {
                         event.limitePagamento(),
                         event.perfilCompra(),
                         event.expiraEm(),
-                        new ArrayList<>() // Vai ser preenchido pelo RoutingService
+                        new ArrayList<>()
                 );
                 marketStateService.saveBidInfo(info);
                 routingService.rotearNovoBid(info);

@@ -25,7 +25,6 @@ public class InventarioService {
     private final InventarioRepository inventarioRepository;
     private final CartaRepository cartaRepository;
 
-    // --- CREATE / UPDATE ---
     @Transactional
     public InventarioResponseDto adicionarOuAtualizarCarta(UUID userId, InventarioRequestDto request) {
         int quantidadeParaAdicionar = request.getQuantidade() != null ? request.getQuantidade() : 1;
@@ -54,7 +53,6 @@ public class InventarioService {
         return converterParaDto(salvo);
     }
 
-    // --- READ ---
     @Transactional(readOnly = true)
     public List<InventarioResponseDto> buscarInventarioPorUsuario(UUID userId) {
         List<Inventario> inventarioUsuario = inventarioRepository.findAllByUserId(userId);
@@ -72,7 +70,6 @@ public class InventarioService {
         return converterParaDto(inventario);
     }
 
-    // --- DELETE ---
     @Transactional
     public void removerCartaTotalmente(UUID userId, UUID cartaId) {
         UsuarioCartaId id = new UsuarioCartaId(userId, cartaId);
@@ -106,14 +103,12 @@ public class InventarioService {
         inventarioRepository.deleteAllByUserId(userId);
     }
 
-    // --- TRANSFERÊNCIA (gRPC) ---
     @Transactional
     public void processarTransferencia(UUID vendedorId, UUID compradorId, UUID cartaId, int quantidade) {
         if (quantidade <= 0) {
             throw new IllegalArgumentException("A quantidade transferida deve ser maior que zero.");
         }
 
-        // 1. Verifica e remove do vendedor
         Inventario inventarioVendedor = inventarioRepository.findByUserIdAndCartaId(vendedorId, cartaId)
                 .orElseThrow(() -> new RuntimeException("O vendedor não possui esta carta no inventário."));
 
@@ -122,15 +117,12 @@ public class InventarioService {
         }
 
         if (inventarioVendedor.getQuantidade() == quantidade) {
-            // Remove o registro totalmente se ele vender todas as cartas que tem
             removerCartaTotalmente(vendedorId, cartaId);
         } else {
-            // Apenas subtrai a quantidade
             inventarioVendedor.setQuantidade(inventarioVendedor.getQuantidade() - quantidade);
             inventarioRepository.save(inventarioVendedor);
         }
 
-        // 2. Adiciona ao comprador (reaproveitando o seu método já existente)
         InventarioRequestDto adicionarRequest = InventarioRequestDto.builder()
                 .cartaId(cartaId)
                 .quantidade(quantidade)
@@ -139,7 +131,6 @@ public class InventarioService {
         adicionarOuAtualizarCarta(compradorId, adicionarRequest);
     }
 
-    // --- MÉTODOS AUXILIARES ---
     private InventarioResponseDto converterParaDto(Inventario inventario) {
         return InventarioResponseDto.builder()
                 .nomeCarta(inventario.getCarta() != null ? inventario.getCarta().getNome() : "Carta Desconhecida")

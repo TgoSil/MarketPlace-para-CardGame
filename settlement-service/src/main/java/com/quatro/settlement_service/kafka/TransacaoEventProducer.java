@@ -14,7 +14,6 @@ public class TransacaoEventProducer {
 
     private static final Logger log = LoggerFactory.getLogger(TransacaoEventProducer.class);
 
-    // O template enviará a chave como String (ID da transação) e o valor como String (JSON)
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
@@ -22,7 +21,6 @@ public class TransacaoEventProducer {
         try {
             String payload = objectMapper.writeValueAsString(evento);
             
-            // Publica no tópico usando o ID da transação como chave para garantir ordenação nas partições
             kafkaTemplate.send(TransacaoEvent.TOPICO, evento.transacaoId().toString(), payload);
             
             log.info("Evento de resultado de transação publicado com sucesso: {}", payload);

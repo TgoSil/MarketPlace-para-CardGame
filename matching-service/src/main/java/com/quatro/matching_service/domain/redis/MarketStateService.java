@@ -20,14 +20,11 @@ public class MarketStateService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    // --- AUCTION INFO ---
     public void saveAuctionInfo(AuctionInfo info) {
         try {
             String json = objectMapper.writeValueAsString(info);
             redisTemplate.opsForValue().set("auction:" + info.idAuction() + ":info", json);
-            // Adiciona a um índice de "Auctions ativas" daquela carta
             redisTemplate.opsForSet().add("card:" + info.idCarta() + ":auctions", info.idAuction().toString());
-            // Adiciona num set global de "Auctions ativas" para checar expiração
             redisTemplate.opsForSet().add("auctions:active", info.idAuction().toString());
         } catch (JsonProcessingException e) {
             log.error("Erro ao salvar AuctionInfo", e);
@@ -58,7 +55,6 @@ public class MarketStateService {
         return auctions.stream().map(UUID::fromString).collect(Collectors.toSet());
     }
 
-    // --- BID INFO ---
     public void saveBidInfo(BidInfo info) {
         try {
             String json = objectMapper.writeValueAsString(info);
@@ -91,7 +87,6 @@ public class MarketStateService {
         return bids.stream().map(UUID::fromString).collect(Collectors.toSet());
     }
 
-    // --- FILAS DE PRIORIDADE (ZSET) ---
     public void updateBidInAuction(UUID auctionId, UUID bidId, BigDecimal currentBidValue) {
         redisTemplate.opsForZSet().add("auction:" + auctionId + ":bids", bidId.toString(), currentBidValue.doubleValue());
     }
@@ -113,7 +108,6 @@ public class MarketStateService {
         return score != null ? BigDecimal.valueOf(score) : null;
     }
 
-    // --- CONSULTAS EXTRAS ---
     public Set<UUID> getAuctionsForCard(UUID cardId) {
         Set<String> auctions = redisTemplate.opsForSet().members("card:" + cardId + ":auctions");
         if (auctions == null) return Set.of();

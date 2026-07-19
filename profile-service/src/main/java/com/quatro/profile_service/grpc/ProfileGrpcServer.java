@@ -26,7 +26,6 @@ public class ProfileGrpcServer extends ProfileServiceGrpc.ProfileServiceImplBase
         String mensagem;
 
         try {
-            // Repassando os IDs do Comprador (User2), Vendedor (User1) e o preço da carta
             profileService.processarTransferencia(
                 UUID.fromString(request.getIdUser2()), 
                 UUID.fromString(request.getIdUser1()), 
@@ -44,7 +43,7 @@ public class ProfileGrpcServer extends ProfileServiceGrpc.ProfileServiceImplBase
         } catch (RuntimeException e) {
             log.error("Falha ao conferir/transferir saldo", e);
             sucesso = false;
-            mensagem = e.getMessage(); // Ex: "Saldo insuficiente" ou "Carteira não encontrada"
+            mensagem = e.getMessage();
         } catch (Exception e) {
             log.error("Erro interno inesperado ao processar RPC de transferência", e);
             sucesso = false;

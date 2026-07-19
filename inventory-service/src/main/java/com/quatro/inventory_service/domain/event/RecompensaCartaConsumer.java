@@ -34,7 +34,6 @@ public class RecompensaCartaConsumer {
             RecompensaCartaEvent evento = objectMapper.readValue(payload, RecompensaCartaEvent.class);
             log.info("Evento de recompensa recebido: {}", evento);
 
-            // GUARDA DE IDEMPOTÊNCIA
             if (evento.eventId() != null && processedEventRepository.existsById(evento.eventId())) {
                 log.info("Evento {} já processado, ignorando duplicata.", evento.eventId());
                 return;
@@ -48,7 +47,6 @@ public class RecompensaCartaConsumer {
                 inventoryService.adicionarOuAtualizarCarta(evento.idUser(), inventario);
             }
 
-            // Registra como processado (na mesma transação @Transactional)
             if (evento.eventId() != null) {
                 processedEventRepository.save(ProcessedEvent.builder()
                         .eventId(evento.eventId())

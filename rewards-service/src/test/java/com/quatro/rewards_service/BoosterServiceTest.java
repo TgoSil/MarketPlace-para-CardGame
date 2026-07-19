@@ -30,13 +30,11 @@ class BoosterServiceTest {
         cartaRepo = mock(CartaRepository.class);
         service = new BoosterService(probRepo, cartaRepo);
 
-        // Probabilidades do tier NORMAL (as reais do projeto)
         when(probRepo.findByTierPacote("NORMAL")).thenReturn(List.of(
                 prob("NORMAL", "C", 50), prob("NORMAL", "B", 35),
                 prob("NORMAL", "A", 10), prob("NORMAL", "S", 4),
                 prob("NORMAL", "P", 1)));
 
-        // Uma carta de cada raridade
         for (String r : List.of("C", "B", "A", "S", "P")) {
             when(cartaRepo.findByRaridade(r)).thenReturn(
                     List.of(new Carta(UUID.randomUUID(), "Carta " + r, r)));
@@ -59,7 +57,6 @@ class BoosterServiceTest {
             }
         }
 
-        // Com 10.000 amostras, aceita 2 pontos percentuais de folga
         assertEquals(50.0, 100.0 * contagem.getOrDefault("C", 0) / sorteios, 2.0);
         assertEquals(35.0, 100.0 * contagem.getOrDefault("B", 0) / sorteios, 2.0);
         assertEquals(10.0, 100.0 * contagem.getOrDefault("A", 0) / sorteios, 2.0);

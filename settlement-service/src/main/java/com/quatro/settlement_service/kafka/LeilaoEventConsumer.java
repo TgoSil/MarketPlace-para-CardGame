@@ -33,18 +33,14 @@ public class LeilaoEventConsumer {
     @KafkaListener(topics = LeilaoEvent.TOPICO, groupId = "settlement-service")
     public void consumir(String payload) {
         try {
-            // Desserialização segura
             LeilaoEvent evento = objectMapper.readValue(payload, LeilaoEvent.class);
             log.info("Evento LEILAO_CONCLUIDO recebido: {}", evento);
 
-            // GUARDA DE IDEMPOTÊNCIA: usa idLeilao (idAuction) como chave natural
-            // Um leilão só pode ser concluído uma única vez
             if (processedEventRepository.existsById(evento.idLeilao())) {
                 log.info("Leilão {} já processado, ignorando duplicata.", evento.idLeilao());
                 return;
             }
 
-            // Mapeando o evento para o RequestDto esperado pelo Service
             TransacaoRequestDto request = TransacaoRequestDto.builder()
                     .ordemCompraId(evento.idBidVencedora())
                     .ordemVendaId(evento.idLeilao())
@@ -55,18 +51,15 @@ public class LeilaoEventConsumer {
                     .quantidade(1)
                     .build();
 
-            // 1. Salva a transação inicial
             TransacaoResponseDto transacaoSalva = transacaoService.adicionarTransacao(request);
             log.info("Transação registrada no banco e pronta para liquidação.");
 
-            // Registra como processado
             processedEventRepository.save(ProcessedEvent.builder()
                     .eventId(evento.idLeilao())
                     .tipo("LEILAO_CONCLUIDO")
                     .processadoEm(LocalDateTime.now())
                     .build());
 
-            // 2. Busca a entidade recém-salva (ou usa o DTO para transferir os dados)
             Transacao transacao = Transacao.builder()
                 .id(transacaoSalva.getId())
                 .ordemCompraId(transacaoSalva.getOrdemCompraId())
@@ -82,7 +75,6 @@ public class LeilaoEventConsumer {
                 .atualizadoEm(transacaoSalva.getAtualizadoEm())
                 .build();
 
-            // 3. Dispara a orquestração gRPC
             settlementOrchestrator.processarLiquidacao(transacao);
 
         } catch (Exception e) {

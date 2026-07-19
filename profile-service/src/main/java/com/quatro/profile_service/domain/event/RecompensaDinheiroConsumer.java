@@ -32,7 +32,6 @@ public class RecompensaDinheiroConsumer {
             RecompensaDinheiroEvent evento = objectMapper.readValue(payload, RecompensaDinheiroEvent.class);
             log.info("Evento de recompensa recebido: {}", evento);
 
-            // GUARDA DE IDEMPOTÊNCIA
             if (evento.eventId() != null && processedEventRepository.existsById(evento.eventId())) {
                 log.info("Evento {} já processado, ignorando duplicata.", evento.eventId());
                 return;
@@ -43,7 +42,6 @@ public class RecompensaDinheiroConsumer {
                                                 .build();
             profileService.adicionarNaCarteira(evento.idUser(), request);
 
-            // Registra como processado (na mesma transação @Transactional)
             if (evento.eventId() != null) {
                 processedEventRepository.save(ProcessedEvent.builder()
                         .eventId(evento.eventId())

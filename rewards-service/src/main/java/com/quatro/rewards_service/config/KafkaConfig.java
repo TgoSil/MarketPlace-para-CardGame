@@ -12,10 +12,8 @@ public class KafkaConfig {
 
     @Bean
     public DefaultErrorHandler errorHandler(KafkaTemplate<Object, Object> template) {
-        // Envia para o tópico original com sufixo .DLT
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(template);
         
-        // 3 tentativas com intervalo de 1000ms
         FixedBackOff backOff = new FixedBackOff(1000L, 3L);
         return new DefaultErrorHandler(recoverer, backOff);
     }

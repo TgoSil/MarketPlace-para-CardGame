@@ -20,10 +20,7 @@ public class RoutingService {
 
     private final MarketStateService marketStateService;
 
-    /**
-     * Quando um robô chega no mercado, ele avalia as auctions disponíveis para a sua carta.
-     * Ele tenta entrar em até 3 leilões diferentes.
-     */
+
     public void rotearNovoBid(BidInfo bid) {
         Set<UUID> auctionsDaCarta = marketStateService.getAuctionsForCard(bid.idCarta());
         if (auctionsDaCarta.isEmpty()) {
@@ -36,21 +33,18 @@ public class RoutingService {
             AuctionInfo auctionInfo = marketStateService.getAuctionInfo(auctionId);
             if (auctionInfo == null) continue;
 
-            // Trata eventuais valores null vindos de JSON mal formatado
             BigDecimal limite = bid.limitePagamento() != null ? bid.limitePagamento() : BigDecimal.ZERO;
             BigDecimal minimo = auctionInfo.precoMinimo() != null ? auctionInfo.precoMinimo() : BigDecimal.ZERO;
 
-            // Se o limite do robô é menor que o preço mínimo, ele nem tenta entrar
             if (limite.compareTo(minimo) < 0) {
                 continue;
             }
 
-            // O robô entra na fila cobrindo o preço mínimo inicialmente
             BigDecimal lanceInicial = minimo;
             marketStateService.updateBidInAuction(auctionId, bid.idBid(), lanceInicial);
             salasEscolhidas.add(auctionId);
 
-            if (salasEscolhidas.size() >= 3) break; // Limite de 3 filas
+            if (salasEscolhidas.size() >= 3) break;
         }
 
         if (!salasEscolhidas.isEmpty()) {

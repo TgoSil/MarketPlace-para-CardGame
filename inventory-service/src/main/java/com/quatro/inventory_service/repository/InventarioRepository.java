@@ -15,11 +15,8 @@ import com.quatro.inventory_service.domain.entity.UsuarioCartaId;
 @Repository
 public interface InventarioRepository extends JpaRepository<Inventario, UsuarioCartaId> {
 
-    // O Spring Data JPA já nos dá o findById(UsuarioCartaId), 
-    // mas às vezes é mais prático buscar passando os UUIDs diretamente.
     Optional<Inventario> findByUserIdAndCartaId(UUID userId, UUID cartaId);
 
-    // Caso precise deletar o inventário inteiro de um usuário (ex: conta excluída)
     void deleteAllByUserId(UUID userId);
 
     @Query("SELECT i FROM Inventario i JOIN FETCH i.carta WHERE i.userId = :userId")

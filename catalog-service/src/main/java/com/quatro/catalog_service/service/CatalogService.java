@@ -23,18 +23,15 @@ public class CatalogService {
 
     private final CatalogRepository catalogRepository;
     
-    // Injeta a ferramenta oficial do Spring para enviar mensagens pro Kafka
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    // Puxa o nome do tópico lá do seu application.properties
     @Value("${topico.catalogo.carta-evento}")
     private String topicoCartaEvento;
 
-    // 1. Criar ou Atualizar uma carta
     @Transactional
     public CartaResponseDto salvarOuAtualizarCarta(UUID id, CartaRequestDto requestDto) {
         cartas cartaParaSalvar;
-        String acao; // Guardamos a ação para avisar o Kafka depois
+        String acao;
 
         if (id != null) {
             acao = "ATUALIZADA";
@@ -62,13 +59,11 @@ public class CatalogService {
         cartas cartaSalva = catalogRepository.save(cartaParaSalvar);
         CartaResponseDto responseDto = converterParaResponseDto(cartaSalva);
 
-        // DISPARO PRO KAFKA: Avisa todo o sistema que a carta mudou!
         enviarEventoKafka(acao, responseDto, responseDto.getId());
 
         return responseDto;
     }
 
-    // 2. Exibir e Filtrar cartas (Permanece igual)
     @Transactional(readOnly = true)
     public List<CartaResponseDto> filtrarCartas(String nome, String raridade, String tipo) {
         List<cartas> resultado;
@@ -88,16 +83,13 @@ public class CatalogService {
                 .collect(Collectors.toList());
     }
 
-    // 3. Remover uma carta
     @Transactional
     public void removerCarta(UUID cartaId) {
         catalogRepository.deleteById(cartaId);
         
-        // DISPARO PRO KAFKA: Avisa que a carta foi excluída
         enviarEventoKafka("DELETADA", null, cartaId);
     }
 
-    // Método auxiliar de conversão (Permanece igual)
     private CartaResponseDto converterParaResponseDto(cartas carta) {
         return CartaResponseDto.builder()
                 .id(carta.getCartaId())
@@ -112,12 +104,10 @@ public class CatalogService {
                 .build();
     }
 
-    // --- LÓGICA DO KAFKA ---
     private void enviarEventoKafka(String acao, CartaResponseDto carta, UUID cartaId) {
         String nome = carta != null ? carta.getNome() : null;
         String raridade = carta != null ? carta.getRaridade() : null;
         CartaEvento evento = new CartaEvento(cartaId, nome, raridade, acao);
-        // Envia para o tópico. O primeiro parâmetro é o tópico, o segundo é a chave (ID), o terceiro é a mensagem
         kafkaTemplate.send(topicoCartaEvento, cartaId.toString(), evento);
         
         System.out.println("Enviado para o Kafka -> Ação: " + acao + " | ID da Carta: " + cartaId);

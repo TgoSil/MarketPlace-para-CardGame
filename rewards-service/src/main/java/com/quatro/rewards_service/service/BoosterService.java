@@ -38,7 +38,6 @@ public class BoosterService {
                     "Nenhuma probabilidade cadastrada para o tier " + tierPacote);
         }
 
-        // Monta a "régua": só raridades com peso > 0 E que possuem cartas
         List<String> raridades = new ArrayList<>();
         List<Double> pesos = new ArrayList<>();
         double somaPesos = 0;

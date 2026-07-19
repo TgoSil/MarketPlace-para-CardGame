@@ -11,6 +11,6 @@ public record BidInfo(
         BigDecimal limitePagamento,
         String perfilCompra,
         java.time.Instant expiraEm,
-        List<UUID> salasAtuais // As auctions nas quais este bid está competindo
+        List<UUID> salasAtuais
 ) {
 }

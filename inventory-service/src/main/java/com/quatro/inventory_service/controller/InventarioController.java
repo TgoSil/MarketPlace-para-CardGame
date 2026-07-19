@@ -47,8 +47,6 @@ public class InventarioController {
         return ResponseEntity.ok(inventarioService.adicionarOuAtualizarCarta(userId, requestDto));
     }
 
-    // --- READ ---
-    // Buscar todas as cartas de um usuário específico
     @GetMapping("/usuario")
     public ResponseEntity<List<InventarioResponseDto>> buscarInventarioPorUsuario(
             @RequestHeader("User-Id") UUID userId) {
@@ -57,7 +55,6 @@ public class InventarioController {
         return ResponseEntity.ok(response);
     }
 
-    // Buscar uma carta específica no inventário de um usuário
     @GetMapping("/usuario/carta/{cartaId}")
     public ResponseEntity<InventarioResponseDto> buscarCartaEspecifica(
             @RequestHeader("User-Id") UUID userId, 
@@ -67,7 +64,6 @@ public class InventarioController {
         return ResponseEntity.ok(response);
     }
 
-    // --- DELETE ---
     @DeleteMapping("/usuario")
     public ResponseEntity<InventarioResponseDto> removerCarta(
             @RequestHeader("User-Id") UUID userId,

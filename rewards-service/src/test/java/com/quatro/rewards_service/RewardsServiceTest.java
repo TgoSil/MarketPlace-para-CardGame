@@ -15,13 +15,13 @@ class RewardsServiceTest {
 
     @Test
     void moedasComUmCicloMultiplicaPor13() {
-        assertEquals(650, service.calcularMoedas(50, 1));   // 50 x 13
+        assertEquals(650, service.calcularMoedas(50, 1));
     }
 
     @Test
     void moedasRespeitamTetoDe5000() {
-        assertEquals(5000, service.calcularMoedas(600, 1)); // 7800 -> teto
-        assertEquals(5000, service.calcularMoedas(50, 3));  // 109850 -> teto
+        assertEquals(5000, service.calcularMoedas(600, 1));
+        assertEquals(5000, service.calcularMoedas(50, 3));
     }
 
     @Test

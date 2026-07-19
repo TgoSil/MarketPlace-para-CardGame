@@ -37,16 +37,6 @@ public class AuthController {
             return ResponseEntity.ok(new LoginResponseDto(token));
     }
 
-    // @Operation(summary = "Valida token do usuário")
-    // @GetMapping("/validate")
-    // public ResponseEntity<Void> validate(
-    //     @RequestHeader("Authorization") String authHeader) {
-    //         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-    //             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    //         }
-    //         return authService.validateToken(authHeader.substring(7))
-    //         ? ResponseEntity.ok().build() : ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    //     }
 
     @Operation(summary = "Registra usuário")
     @PostMapping("/register")

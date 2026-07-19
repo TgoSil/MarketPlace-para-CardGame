@@ -4,15 +4,15 @@ import java.util.UUID;
 
 public record TransacaoResultadoEvent(
         UUID transacaoId,
-        UUID ordemCompraId,     // corresponde ao ID da Bid
-        UUID ordemVendaId,      // corresponde ao ID da Auction
+        UUID ordemCompraId,
+        UUID ordemVendaId,
         UUID compradorId,
         UUID vendedorId,
         UUID cartaId,
         Integer preco,
         Integer quantidade,
-        String status,          // "CONCLUIDA" ou "FALHA"
-        String razaoFalha       // null se sucesso; descrição do erro se falha
+        String status,
+        String razaoFalha
 ) {
     public static final String TOPICO = "TRANSACAO_RESULTADO";
 }

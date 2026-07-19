@@ -26,7 +26,6 @@ public class InventoryGrpcServer extends InventoryServiceGrpc.InventoryServiceIm
         String mensagem;
 
         try {
-            // Repassando os IDs do Vendedor (User1), Comprador (User2), Carta e Quantidade
             inventarioService.processarTransferencia(
                 UUID.fromString(request.getIdUser1()), 
                 UUID.fromString(request.getIdUser2()), 
@@ -45,7 +44,7 @@ public class InventoryGrpcServer extends InventoryServiceGrpc.InventoryServiceIm
         } catch (RuntimeException e) {
             log.error("Falha ao conferir/transferir carta", e);
             sucesso = false;
-            mensagem = e.getMessage(); // Ex: "O vendedor não possui cartas suficientes..."
+            mensagem = e.getMessage();
         } catch (Exception e) {
             log.error("Erro interno inesperado ao processar RPC de transferência de carta", e);
             sucesso = false;

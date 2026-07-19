@@ -58,7 +58,6 @@ public class ProfileController {
     public ResponseEntity<List<UsuarioResponseDto>> getAllUsuarios(
             @RequestHeader(value = "User-cargo", defaultValue = "") String userCargo) {
         
-        // Proteção: Apenas administradores podem listar todos os usuários
         if (!"ADMIN".equalsIgnoreCase(userCargo)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }

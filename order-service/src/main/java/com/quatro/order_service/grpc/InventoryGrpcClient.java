@@ -34,7 +34,6 @@ public class InventoryGrpcClient {
             return response.getPossuiCarta();
         } catch (Exception e) {
             log.error("Erro ao comunicar com inventory-service via gRPC: {}", e.getMessage());
-            // Em caso de falha de comunicação, estamos bloqueando e retornando false.
             return false;
         }
     }
