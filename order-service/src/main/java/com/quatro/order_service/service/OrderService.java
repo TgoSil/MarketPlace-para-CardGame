@@ -35,6 +35,8 @@ public class OrderService {
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
     private final OrderEventPublisher eventPublisher;
+    private final com.quatro.order_service.grpc.InventoryGrpcClient inventoryGrpcClient;
+    private final com.quatro.order_service.grpc.ProfileGrpcClient profileGrpcClient;
 
     // ========================
     //  CRIAÇÃO
@@ -42,10 +44,10 @@ public class OrderService {
 
     public AuctionResponseDto createAuction(UUID userId, AuctionRequestDto request) {
         // TODO (gRPC): Validar se usuário possui a carta antes de criar Auction
-        // boolean possuiCarta = inventoryGrpcClient.validarPosseCarta(userId, request.getIdCarta());
-        // if (!possuiCarta) {
-        //     throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Usuário não possui esta carta.");
-        // }
+        boolean possuiCarta = inventoryGrpcClient.validarPosseCarta(userId, request.getIdCarta());
+        if (!possuiCarta) {
+             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Usuário não possui esta carta.");
+        }
 
         Auction auction = Auction.builder()
                 .idAuction(UUID.randomUUID())
@@ -78,10 +80,10 @@ public class OrderService {
 
     public BidResponseDto createBid(UUID userId, BidRequestDto request) {
         // TODO (gRPC): Validar se usuário possui saldo suficiente antes de criar Bid
-        // boolean possuiSaldo = profileGrpcClient.validarSaldoUsuario(userId, request.getLimitePagamento());
-        // if (!possuiSaldo) {
-        //     throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Saldo insuficiente.");
-        // }
+        boolean possuiSaldo = profileGrpcClient.validarSaldoUsuario(userId, request.getLimitePagamento());
+        if (!possuiSaldo) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Saldo insuficiente.");
+        }
 
         Bid bid = Bid.builder()
                 .id(UUID.randomUUID())

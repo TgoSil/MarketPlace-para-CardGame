@@ -60,4 +60,27 @@ public class InventoryGrpcServer extends InventoryServiceGrpc.InventoryServiceIm
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
+
+    @Override
+    public void validaPosseCarta(com.quatro.grpc.inventory.ValidaPosseRequest request, StreamObserver<com.quatro.grpc.inventory.ValidaPosseResponse> responseObserver) {
+        log.info("Requisição RPC recebida para validar posse da carta: {} pelo usuário: {}", request.getIdCarta(), request.getIdUser());
+        boolean possui = false;
+
+        try {
+            inventarioService.buscarCartaEspecifica(
+                UUID.fromString(request.getIdUser()),
+                UUID.fromString(request.getIdCarta())
+            );
+            possui = true;
+        } catch (Exception e) {
+            log.info("Usuário {} não possui a carta {}.", request.getIdUser(), request.getIdCarta());
+        }
+
+        com.quatro.grpc.inventory.ValidaPosseResponse response = com.quatro.grpc.inventory.ValidaPosseResponse.newBuilder()
+                .setPossuiCarta(possui)
+                .build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
 }

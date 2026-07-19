@@ -59,4 +59,28 @@ public class ProfileGrpcServer extends ProfileServiceGrpc.ProfileServiceImplBase
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
+
+    @Override
+    public void validaSaldoUsuario(com.quatro.grpc.profile.ValidaSaldoRequest request, StreamObserver<com.quatro.grpc.profile.ValidaSaldoResponse> responseObserver) {
+        log.info("Requisição RPC recebida para validar saldo. User: {}, Valor necessário: {}", request.getIdUser(), request.getValorNecessario());
+        boolean possui = false;
+
+        try {
+            com.quatro.profile_service.domain.dto.CarteiraResponseDto carteira = profileService.buscarCarteira(UUID.fromString(request.getIdUser()));
+            if (carteira.getDinheiro() >= request.getValorNecessario()) {
+                possui = true;
+            } else {
+                log.info("Usuário {} possui saldo insuficiente. Saldo: {}, Necessário: {}", request.getIdUser(), carteira.getDinheiro(), request.getValorNecessario());
+            }
+        } catch (Exception e) {
+            log.info("Erro ao buscar carteira do usuário {}: {}", request.getIdUser(), e.getMessage());
+        }
+
+        com.quatro.grpc.profile.ValidaSaldoResponse response = com.quatro.grpc.profile.ValidaSaldoResponse.newBuilder()
+                .setPossuiSaldo(possui)
+                .build();
+
+        responseObserver.onNext(response);
+        responseObserver.onCompleted();
+    }
 }
