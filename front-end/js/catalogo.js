@@ -110,5 +110,6 @@ function abrirModal(carta, urlDaImagem, poderDaCarta) {
 btnClose.addEventListener('click', () => modal.style.display = 'none');
 
 btnComprar.addEventListener('click', () => {
-    alert(`Redirecionando para o Mercado para comprar: ${cartaSelecionada.nome}`);
+    const id = cartaSelecionada.id || cartaSelecionada.carta_id || cartaSelecionada.idCarta;
+    window.location.href = `mercado.html?action=comprar&cartaId=${id}`;
 });

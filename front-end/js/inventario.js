@@ -153,5 +153,6 @@ btnClose.addEventListener('click', () => {
 });
 
 btnVender.addEventListener('click', () => {
-    alert(`Preparando para criar oferta de venda no Mercado para: ${cartaSelecionada.nome} \nVocê possui: ${quantidadePossuida} unidade(s).`);
+    const id = cartaSelecionada.id || cartaSelecionada.carta_id || cartaSelecionada.idCarta;
+    window.location.href = `mercado.html?action=vender&cartaId=${id}`;
 });
