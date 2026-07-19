@@ -55,24 +55,14 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-    @GetMapping("/admin/auctions")
-    public ResponseEntity<List<AuctionResponseDto>> getAllAuctions(
-            @RequestHeader(value = "User-cargo", defaultValue = "") String userCargo) {
-        
-        if (!"ADMIN".equalsIgnoreCase(userCargo)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    @GetMapping("/auctions")
+    public ResponseEntity<List<AuctionResponseDto>> getAllAuctions() {
 
         return ResponseEntity.ok(orderService.getAllAuctions());
     }
 
-    @GetMapping("/admin/bids")
-    public ResponseEntity<List<BidResponseDto>> getAllBids(
-            @RequestHeader(value = "User-cargo", defaultValue = "") String userCargo) {
-        
-        if (!"ADMIN".equalsIgnoreCase(userCargo)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+    @GetMapping("/bids")
+    public ResponseEntity<List<BidResponseDto>> getAllBids() {
 
         return ResponseEntity.ok(orderService.getAllBids());
     }
