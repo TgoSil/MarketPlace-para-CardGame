@@ -140,6 +140,25 @@ main {
     background-color: #6a8cbd;
 }
 
+.btn-reward {
+    display: inline-block;
+    background-color: #a3deda;
+    border: 3px solid var(--cor-borda);
+    border-radius: 15px;
+    padding: 10px 30px;
+    color: #000;
+    font-family: 'Arial', sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background-color 0.2s;
+}
+
+.btn-reward:hover {
+    background-color: #6b9693;
+}
+
 /* =========================================
    ESTILOS DO DASHBOARD (Catálogo, Inventário, Perfil)
    ========================================= */
@@ -399,20 +418,22 @@ main {
     padding: 40px;
     width: 800px;
     margin: 0 auto;
+    padding-top: 20px;
 }
 
 .profile-title {
     font-family: 'Arial', sans-serif;
     color: var(--cor-texto-padrao);
     font-size: 32px;
-    margin-bottom: 20px;
+    margin-top: 0;
+    margin-bottom: 15px;
 }
 
 .profile-info-row {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-bottom: 30px;
+    margin-bottom: 10px;
 }
 
 .profile-info-row span {
@@ -447,4 +468,38 @@ main {
     margin-bottom: 10px;
     color: var(--cor-texto-padrao);
     font-family: 'Arial', sans-serif;
+}
+
+/* =========================================
+   ESTILOS DA RECOMPENSA DIÁRIA (PERFIL)
+   ========================================= */
+
+.reward-section {
+    margin-top: 20px;
+    margin-bottom: 40px;
+    padding: 20px;
+    border: 3px dashed #ffffff; /* Borda pontilhada branca */
+    border-radius: 15px;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.05); /* Fundo levemente transparente para destacar a área */
+}
+
+.reward-title {
+    /* Herda a fonte do projeto. Se você usar uma fonte específica para os títulos (ex: 'Press Start 2P'), coloque o nome dela aqui */
+    font-family: 'VT323', monospace;
+    color: #ffffff; /* Texto branco */
+    text-transform: uppercase; /* Tudo em maiúsculo */
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 36px;
+    font-weight: bold;
+}
+
+.reward-text {
+    color: #ffffff; /* Textos menores em branco */
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-transform: uppercase;
 }
