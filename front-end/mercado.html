@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercado - Quatro</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/mercado.js" defer></script>
+</head>
+<body>
+    
+    <nav class="navbar">
+        <a href="#" class="nav-logo">第四組項目</a>
+        <div class="nav-links">
+            <a href="perfil.html">PERFIL</a>
+            <a href="catalogo.html">CATÁLOGO</a>
+            <a href="inventario.html">INVENTÁRIO</a>
+            <a href="mercado.html" class="active">MERCADO</a>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="page-title">Mercado</div>
+        <div class="wallet-container">
+            <span class="wallet-label">CARTEIRA:</span>
+            <div class="wallet-pill" id="walletBalance">0.00</div>
+        </div>
+    </div>
+
+    <main>
+        <!-- TELA 1: Lista do Mercado -->
+        <div id="marketListView" class="market-container">
+            <div class="market-controls">
+                <div class="checkboxes">
+                    <label>
+                        <span class="custom-checkbox">X</span> OFERTAS DE VENDA
+                    </label>
+                    <label>
+                        <span class="custom-checkbox"></span> OFERTAS DE COMPRA
+                    </label>
+                </div>
+                <input type="text" id="searchMarket" placeholder="Buscar por carta.." class="market-search">
+            </div>
+
+            <div class="market-table-container">
+                <div class="market-header">
+                    <span>Carta</span>
+                    <span>Valor Mín.</span>
+                    <span>Valor Máx.</span>
+                    <span>Tempo Restante</span>
+                </div>
+                <div id="marketListBody" class="market-body">
+                    <!-- O JS preencherá isso -->
+                    <div class="market-row"><span colspan="4" style="text-align: center; width: 100%;">Carregando ofertas...</span></div>
+                </div>
+            </div>
+
+            <div class="market-footer">
+                <button id="btnFazerOferta" class="btn-action">FAZER OFERTA</button>
+            </div>
+        </div>
+
+        <!-- TELA 2: Nova Oferta -->
+        <div id="novaOfertaView" class="nova-oferta-container" style="display: none;">
+            <h2 class="nova-oferta-title">Nova Oferta</h2>
+            
+            <div class="nova-oferta-content">
+                <div class="nova-oferta-form">
+                    <div class="form-row">
+                        <label>CARTA:</label>
+                        <select id="selectCarta" class="market-input"></select>
+                    </div>
+                    <!-- Campo de Quantidade Removido conforme regra de negócio (sempre 1) -->
+                    <div class="form-row">
+                        <label>Valor Mín.:</label>
+                        <input type="number" id="valorMin" class="market-input" step="0.01" placeholder="Ex: 20.00">
+                    </div>
+                    <div class="form-row">
+                        <label>Valor Máx.:</label>
+                        <input type="number" id="valorMax" class="market-input" step="0.01" placeholder="Ex: 100.00">
+                    </div>
+                    <div class="form-row">
+                        <label>Ofertar até:</label>
+                        <input type="date" id="ofertarAte" class="market-input">
+                    </div>
+
+                    <div class="nova-oferta-actions">
+                        <button id="btnComprarOferta" class="btn-action">COMPRAR</button>
+                        <button id="btnVenderOferta" class="btn-action">VENDER</button>
+                    </div>
+                    <button id="btnVoltarMercado" class="btn-text-only" style="margin-top: 15px;">Voltar para a lista</button>
+                </div>
+
+                <div class="nova-oferta-preview" id="cardPreviewContainer">
+                    <!-- Preview da carta selecionada -->
+                    <div class="card" style="margin: 0; cursor: default;">
+                        <img src="sprites/placeholder.png" id="previewImg" style="width: 100%; object-fit: contain; border-radius: 10px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

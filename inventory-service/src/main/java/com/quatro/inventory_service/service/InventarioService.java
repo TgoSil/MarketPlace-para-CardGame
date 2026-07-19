@@ -104,6 +104,39 @@ public class InventarioService {
         inventarioRepository.deleteAllByUserId(userId);
     }
 
+    // --- TRANSFERÊNCIA (gRPC) ---
+    @Transactional
+    public void processarTransferencia(UUID vendedorId, UUID compradorId, UUID cartaId, int quantidade) {
+        if (quantidade <= 0) {
+            throw new IllegalArgumentException("A quantidade transferida deve ser maior que zero.");
+        }
+
+        // 1. Verifica e remove do vendedor
+        Inventario inventarioVendedor = inventarioRepository.findByUserIdAndCartaId(vendedorId, cartaId)
+                .orElseThrow(() -> new RuntimeException("O vendedor não possui esta carta no inventário."));
+
+        if (inventarioVendedor.getQuantidade() < quantidade) {
+            throw new RuntimeException("O vendedor não possui cartas suficientes para a transferência.");
+        }
+
+        if (inventarioVendedor.getQuantidade() == quantidade) {
+            // Remove o registro totalmente se ele vender todas as cartas que tem
+            removerCartaTotalmente(vendedorId, cartaId);
+        } else {
+            // Apenas subtrai a quantidade
+            inventarioVendedor.setQuantidade(inventarioVendedor.getQuantidade() - quantidade);
+            inventarioRepository.save(inventarioVendedor);
+        }
+
+        // 2. Adiciona ao comprador (reaproveitando o seu método já existente)
+        InventarioRequestDto adicionarRequest = InventarioRequestDto.builder()
+                .cartaId(cartaId)
+                .quantidade(quantidade)
+                .build();
+        
+        adicionarOuAtualizarCarta(compradorId, adicionarRequest);
+    }
+
     // --- MÉTODOS AUXILIARES ---
     private InventarioResponseDto converterParaDto(Inventario inventario) {
         return InventarioResponseDto.builder()

@@ -1,5 +1,6 @@
 package com.quatro.profile_service.service;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,7 +40,7 @@ public class ProfileService {
 
     // -- CREATE --
     @Transactional
-    public CarteiraResponseDto criarCarteira(UUID userId){
+    public CarteiraResponseDto criarCarteira(UUID userId, String username){
         Optional<Carteira> carteiraExistente = repository.findById(userId);
 
         Carteira carteira;
@@ -47,6 +48,8 @@ public class ProfileService {
             carteira = Carteira.builder()
                     .userId(userId)
                     .dinheiro(0)
+                    .username(username)
+                    .criadoEm(LocalDate.now())
                     .build();
         }else {
             throw new RuntimeException("Usuário já existe.");
@@ -103,9 +106,40 @@ public class ProfileService {
         return converterParaDto(salvo);
     }
 
+    // -- TRANSFERÊNCIA (gRPC) --
+    @Transactional
+    public void processarTransferencia(UUID compradorId, UUID vendedorId, double precoCarta) {
+        // Converte o double recebido pelo gRPC para o Integer (centavos) usado no banco de dados
+        int valorTransferencia = (int) Math.round(precoCarta * 100);
+
+        if (valorTransferencia <= 0) {
+            throw new IllegalArgumentException("O valor da transferência deve ser maior que zero.");
+        }
+
+        // 1. Valida e debita do Comprador
+        Carteira carteiraComprador = repository.findById(compradorId)
+                .orElseThrow(() -> new RuntimeException("Carteira do comprador não encontrada."));
+
+        if (carteiraComprador.getDinheiro() < valorTransferencia) {
+            throw new RuntimeException("Saldo insuficiente para realizar a compra.");
+        }
+        
+        carteiraComprador.setDinheiro(carteiraComprador.getDinheiro() - valorTransferencia);
+        repository.save(carteiraComprador);
+
+        // 2. Valida e credita no Vendedor
+        Carteira carteiraVendedor = repository.findById(vendedorId)
+                .orElseThrow(() -> new RuntimeException("Carteira do vendedor não encontrada."));
+
+        carteiraVendedor.setDinheiro(carteiraVendedor.getDinheiro() + valorTransferencia);
+        repository.save(carteiraVendedor);
+    }
+
     private CarteiraResponseDto converterParaDto(Carteira carteira) {
         return CarteiraResponseDto.builder()
                 .dinheiro((double)carteira.getDinheiro()/100)
+                .username(carteira.getUsername())
+                .criadoEm(carteira.getCriadoEm())
                 .build();
     }
 }

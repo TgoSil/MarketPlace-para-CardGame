@@ -66,7 +66,7 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(newUser.id(), newUser.email(), newUser.cargo());
 
-        kafkaProducer.sendUsuarioCriado(new UsuarioEvento(newUser.id()));
+        kafkaProducer.sendUsuarioCriado(new UsuarioEvento(newUser.id(), registerRequestDto.getUsername()));
 
         return token;
     }

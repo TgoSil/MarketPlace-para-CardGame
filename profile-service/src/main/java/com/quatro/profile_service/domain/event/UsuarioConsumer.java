@@ -24,7 +24,7 @@ public class UsuarioConsumer {
             UsuarioEvento evento = objectMapper.readValue(payload, UsuarioEvento.class);
             log.info("Evento de usuário recebido: {}", evento);
             try{
-                profileService.criarCarteira(evento.id());
+                profileService.criarCarteira(evento.id(), evento.username());
             }catch(Exception e){
                 log.warn("Usuário já existe, ignorando: {}", evento);
             }

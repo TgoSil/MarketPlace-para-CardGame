@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil - Quatro</title>
+    
+    <!-- CSS Global -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Script específico da página de perfil importado aqui -->
+    <script src="js/perfil.js" defer></script>
+</head>
+<body>
+    
+    <nav class="navbar">
+        <a href="#" class="nav-logo">第四組項目</a>
+        <div class="nav-links">
+            <a href="perfil.html" class="active">PERFIL</a>
+            <a href="catalogo.html">CATÁLOGO</a>
+            <a href="inventario.html">INVENTÁRIO</a>
+            <a href="mercado.html">MERCADO</a>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="page-title">Perfil</div>
+    </div>
+
+    <main>
+        <div class="profile-card">
+            <!-- O JS (perfil.js) vai injetar o nome de usuário real aqui -->
+            <h2 class="profile-title">CARREGANDO...</h2>
+            
+            <div class="profile-info-row">
+                <span>CRIADO EM:</span>
+                <!-- O JS vai injetar a data formatada aqui -->
+                <div class="profile-input-mock">--/--/----</div>
+            </div>
+
+            <div class="profile-info-row">
+                <span>SUAS OFERTAS ATIVAS:</span>
+            </div>
+
+            <div class="offers-list">
+                <!-- Mock visual de ofertas. No futuro você preencherá isso dinamicamente buscando do Market/Order service -->
+                <div class="offer-item">
+                    <span>1x</span>
+                    <span>Voltante Azul</span>
+                    <span>10.00</span>
+                    <span>500.00</span>
+                    <span>2 dias</span>
+                </div>
+                <div class="offer-item">
+                    <span>1x</span>
+                    <span>Voltante Vermelho</span>
+                    <span>15.00</span>
+                    <span>800.00</span>
+                    <span>5 dias</span>
+                </div>
+            </div>
+
+            <!-- Seção de Recompensa Diária -->
+            <div class="reward-section" id="rewardSection">
+                <h3 class="reward-title">RECOMPENSA DIÁRIA (CICLO <span id="rewardCiclo">-</span> - DIA <span id="rewardDia">-</span>)</h3>
+                <p id="rewardInfo" class="reward-text">VERIFICANDO STATUS DA RECOMPENSA...</p>
+                
+                <button id="btnResgatar" class="btn-reward" style="display: none; margin: 0 auto;">
+                    RESGATAR
+                </button>
+            </div>
+
+            <div class="wallet-container" style="justify-content: flex-end;">
+                <span class="wallet-label">CARTEIRA:</span>
+                <!-- O JS vai injetar o saldo real aqui -->
+                <div class="wallet-pill">0.00</div>
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>
