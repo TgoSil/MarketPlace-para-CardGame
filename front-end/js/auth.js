@@ -1,4 +1,35 @@
 // Este script roda em todas as páginas
+document.addEventListener('DOMContentLoaded', () => {
+    const cargo = localStorage.getItem('userCargo');
+    const navAdmin = document.getElementById('navAdminUsuarios');
+    const btnLogout = document.getElementById('btnLogout');
+    
+    // Se a página possuir o link e o usuário for ADMIN, exibe a opção
+    if (navAdmin && cargo === 'ADMIN') {
+        navAdmin.style.display = 'inline-block';
+    }
+    
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            const confirmar = confirm("Tem certeza que deseja sair?");
+            
+            if (confirmar) {
+                // 1. Apaga o Token JWT
+                localStorage.removeItem('token');
+                
+                // 2. Apaga o Cargo
+                localStorage.removeItem('userCargo');
+                
+                // (Opcional) Limpa todo o localStorage se não houver mais nada a preservar
+                // localStorage.clear();
+                
+                // 3. Redireciona para a tela de Login
+                window.location.href = 'index.html';
+            }
+        });
+    }
+});
+
 async function verificarCargoGlobal() {
     if (!localStorage.getItem('userCargo') && localStorage.getItem('token')) {
         try {
@@ -15,15 +46,5 @@ async function verificarCargoGlobal() {
         }
     }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    const cargo = localStorage.getItem('userCargo');
-    const navAdmin = document.getElementById('navAdminUsuarios');
-    
-    // Se a página possuir o link e o usuário for ADMIN, exibe a opção
-    if (navAdmin && cargo === 'ADMIN') {
-        navAdmin.style.display = 'inline-block';
-    }
-});
 
 verificarCargoGlobal();
