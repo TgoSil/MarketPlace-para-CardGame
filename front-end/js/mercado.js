@@ -1,6 +1,8 @@
 const token = localStorage.getItem('token');
 const userId = "123e4567-e89b-12d3-a456-426614174000"; 
 let catalogoGlobal = [];
+let auctionsGlobais = [];
+let bidsGlobais = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!token) {
@@ -10,24 +12,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await carregarCarteira();
     await carregarCatalogo();
-    
-    // Verifica se veio redirecionado com parâmetros na URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const action = urlParams.get('action');
-    const cartaId = urlParams.get('cartaId');
+    await carregarListaMercado();
 
-    if (action && cartaId) {
-        abrirNovaOferta(cartaId);
-    } else {
-        await carregarListaMercado();
-    }
-
-    // Event Listeners dos botões
+    // Event Listeners
     document.getElementById('btnFazerOferta').addEventListener('click', () => abrirNovaOferta());
     document.getElementById('btnVoltarMercado').addEventListener('click', voltarParaLista);
     document.getElementById('selectCarta').addEventListener('change', atualizarPreviewDaCarta);
     
-    // Submissão: Criar Bid (Compra) e Criar Auction (Venda)
     document.getElementById('btnComprarOferta').addEventListener('click', criarBid);
     document.getElementById('btnVenderOferta').addEventListener('click', criarAuction);
 });
@@ -65,59 +56,73 @@ async function carregarCatalogo() {
 }
 
 async function carregarListaMercado() {
-    // Busca as ordens do usuário. (Se houver um endpoint público no futuro, altere a URL aqui)
     try {
         const response = await fetch(`http://localhost:80/orders`, {
             headers: { 'User-Id': userId, 'Authorization': `Bearer ${token}` }
         });
         
-        const tbody = document.getElementById('marketListBody');
-        tbody.innerHTML = '';
-
         if (response.ok) {
             const data = await response.json();
-            
-            // O endpoint /orders retorna um Map contendo 'auctions' e 'bids'
-            const auctions = data.auctions || [];
-            const bids = data.bids || [];
-            const todasOfertas = [...auctions, ...bids];
-
-            if (todasOfertas.length === 0) {
-                tbody.innerHTML = '<div class="market-row"><span colspan="4">Nenhuma oferta encontrada.</span></div>';
-                return;
-            }
-
-            todasOfertas.forEach(oferta => {
-                // Tenta cruzar com o catálogo para pegar o nome da carta
-                const cartaRelacionada = catalogoGlobal.find(c => (c.id || c.carta_id) === oferta.idCarta);
-                const nomeCarta = cartaRelacionada ? cartaRelacionada.nome : 'Carta Desconhecida';
-                
-                const min = oferta.precoMinimo ? oferta.precoMinimo.toFixed(2) : '--';
-                const max = oferta.precoTeto ? oferta.precoTeto.toFixed(2) : (oferta.limitePagamento ? oferta.limitePagamento.toFixed(2) : '--');
-                
-                // Formatação simples de data
-                const expira = oferta.expiraEm ? new Date(oferta.expiraEm).toLocaleDateString('pt-BR') : 'Sem validade';
-
-                const html = `
-                    <div class="market-row">
-                        <span>${nomeCarta}</span>
-                        <span>${min}</span>
-                        <span>${max}</span>
-                        <span>${expira}</span>
-                    </div>
-                `;
-                tbody.insertAdjacentHTML('beforeend', html);
-            });
-        } else {
-            tbody.innerHTML = '<div class="market-row"><span colspan="4">Erro ao buscar ofertas.</span></div>';
+            // Armazena as listas separadamente[cite: 7, 8]
+            auctionsGlobais = data.auctions || []; 
+            bidsGlobais = data.bids || [];
+            renderizarTabela();
         }
-    } catch (error) { console.error('Erro:', error); }
+    } catch (error) { console.error('Erro ao carregar mercado:', error); }
+}
+
+function renderizarTabela() {
+    const tbody = document.getElementById('marketListBody');
+    tbody.innerHTML = '';
+
+    const mostrarVendas = document.getElementById('checkVendas').checked;
+    const mostrarCompras = document.getElementById('checkCompras').checked;
+
+    let listaParaExibir = [];
+    if (mostrarVendas) listaParaExibir.push(...auctionsGlobais.map(a => ({...a, tipo: 'VENDA'})));
+    if (mostrarCompras) listaParaExibir.push(...bidsGlobais.map(b => ({...b, tipo: 'COMPRA'})));
+
+    if (listaParaExibir.length === 0) {
+        tbody.innerHTML = '<div class="market-row"><span colspan="4" style="width: 100%; text-align: center;">Nenhuma oferta selecionada.</span></div>';
+        return;
+    }
+
+    listaParaExibir.forEach(oferta => {
+        const cartaRelacionada = catalogoGlobal.find(c => (c.id || c.carta_id || c.idCarta) === oferta.idCarta);
+        const nomeCarta = cartaRelacionada ? cartaRelacionada.nome : 'Carta Desconhecida';
+        
+        const valor = oferta.tipo === 'VENDA' ? oferta.precoMinimo : oferta.limitePagamento;
+        const valorMax = oferta.tipo === 'VENDA' ? (oferta.precoTeto || '--') : '--';
+        
+        const html = `
+            <div class="market-row">
+                <span>${nomeCarta}</span>
+                <span>${valor ? valor.toFixed(2) : '--'}</span>
+                <span>${typeof valorMax === 'number' ? valorMax.toFixed(2) : valorMax}</span>
+                <span>${formatarTempo(oferta.expiraEm)}</span>
+            </div>
+        `;
+        tbody.insertAdjacentHTML('beforeend', html);
+    });
+}
+
+function formatarTempo(expiraEm) {
+    if (!expiraEm) return 'Sem validade';
+    const agora = new Date();
+    const expiracao = new Date(expiraEm);
+    const diffMs = expiracao - agora;
+    const diffHoras = Math.ceil(diffMs / (1000 * 60 * 60));
+
+    if (diffHoras <= 0) return 'Expirado';
+    if (diffHoras > 24) {
+        return Math.ceil(diffHoras / 24) + ' dias';
+    }
+    return diffHoras + ' horas';
 }
 
 function abrirNovaOferta(cartaId = null) {
     document.getElementById('marketListView').style.display = 'none';
     document.getElementById('novaOfertaView').style.display = 'block';
-
     if (cartaId) {
         document.getElementById('selectCarta').value = cartaId;
         atualizarPreviewDaCarta();
@@ -127,7 +132,7 @@ function abrirNovaOferta(cartaId = null) {
 function voltarParaLista() {
     document.getElementById('novaOfertaView').style.display = 'none';
     document.getElementById('marketListView').style.display = 'block';
-    carregarListaMercado();
+    renderizarTabela();
 }
 
 function atualizarPreviewDaCarta() {
@@ -152,19 +157,17 @@ async function criarAuction() {
         precoTeto: parseFloat(document.getElementById('valorMax').value),
         expiraEm: formatarDataFimDoDia(document.getElementById('ofertarAte').value)
     };
-
-    enviarRequisicao('/auction', payload, 'Oferta de Venda (Auction)');
+    enviarRequisicao('/auction', payload, 'Venda');
 }
 
 async function criarBid() {
     const payload = {
         idCarta: document.getElementById('selectCarta').value,
-        limitePagamento: parseFloat(document.getElementById('valorMax').value), // Mapeado para limitePagamento do BidRequestDto
+        limitePagamento: parseFloat(document.getElementById('valorMax').value),
         perfilCompra: "PADRAO",
         expiraEm: formatarDataFimDoDia(document.getElementById('ofertarAte').value)
     };
-
-    enviarRequisicao('/bid', payload, 'Oferta de Compra (Bid)');
+    enviarRequisicao('/bid', payload, 'Compra');
 }
 
 async function enviarRequisicao(endpoint, payload, tipo) {
@@ -178,20 +181,16 @@ async function enviarRequisicao(endpoint, payload, tipo) {
             },
             body: JSON.stringify(payload)
         });
-
         if (response.ok) {
-            alert(`${tipo} criada com sucesso!`);
+            alert(`Oferta de ${tipo} criada!`);
             voltarParaLista();
         } else {
-            const error = await response.text();
-            alert(`Erro ao criar ${tipo}: ${error}`);
+            const err = await response.text();
+            alert(`Erro: ${err}`);
         }
-    } catch (error) {
-        alert('Erro de conexão com o servidor.');
-    }
+    } catch (e) { alert('Erro de conexão.'); }
 }
 
-// Transforma a string de data (YYYY-MM-DD) num formato ISO que o Spring Data (Instant) entenda
 function formatarDataFimDoDia(dataString) {
     if(!dataString) return null;
     const data = new Date(dataString);

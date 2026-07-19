@@ -419,6 +419,7 @@ main {
     width: 800px;
     margin: 0 auto;
     padding-top: 20px;
+    margin-bottom: 50px;
 }
 
 .profile-title {
@@ -609,21 +610,20 @@ main {
     font-family: inherit;
 }
 
-/* Modal Nova Oferta */
 .nova-oferta-container {
-    background-color: #74b9ff;
+    background-color: #7296cc;
     border: 4px solid #2f3640;
     border-radius: 20px;
     padding: 30px;
-    margin-top: 20px;
-    font-family: 'Courier New', Courier, monospace;
+    margin-bottom: 20px;
+    font-family: 'Courier New', Courier, monospace; /* Fonte mantida */
     color: white;
-    box-shadow: 4px 4px 10px rgba(0,0,0,0.3);
 }
 
 .nova-oferta-title {
     margin-top: 0;
     font-size: 24px;
+    margin-bottom: 20px;
     text-shadow: 1px 1px 0 #000;
 }
 
@@ -644,11 +644,12 @@ main {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 10px;
 }
 
 .form-row label {
     font-weight: bold;
-    font-size: 20px;
+    font-size: 16px;
     text-shadow: 1px 1px 0 #000;
 }
 
@@ -669,4 +670,21 @@ main {
 
 .nova-oferta-preview {
     width: 250px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 100px;
+}
+
+#cardPreviewContainer .card {
+    background-color: transparent !important; /* Remove fundo cinza/branco do card */
+    border: none !important;                 /* Remove borda */
+    box-shadow: none !important;             /* Remove sombra */
+    padding: 0 !important;
+}
+
+#previewImg {
+    width: 100%;
+    border-radius: 0; /* Remove bordas arredondadas se quiser a carta "crua" */
+    display: block;
 }
