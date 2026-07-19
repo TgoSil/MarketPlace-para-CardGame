@@ -36,13 +36,17 @@ public class RoutingService {
             AuctionInfo auctionInfo = marketStateService.getAuctionInfo(auctionId);
             if (auctionInfo == null) continue;
 
+            // Trata eventuais valores null vindos de JSON mal formatado
+            BigDecimal limite = bid.limitePagamento() != null ? bid.limitePagamento() : BigDecimal.ZERO;
+            BigDecimal minimo = auctionInfo.precoMinimo() != null ? auctionInfo.precoMinimo() : BigDecimal.ZERO;
+
             // Se o limite do robô é menor que o preço mínimo, ele nem tenta entrar
-            if (bid.limitePagamento().compareTo(auctionInfo.precoMinimo()) < 0) {
+            if (limite.compareTo(minimo) < 0) {
                 continue;
             }
 
             // O robô entra na fila cobrindo o preço mínimo inicialmente
-            BigDecimal lanceInicial = auctionInfo.precoMinimo();
+            BigDecimal lanceInicial = minimo;
             marketStateService.updateBidInAuction(auctionId, bid.idBid(), lanceInicial);
             salasEscolhidas.add(auctionId);
 

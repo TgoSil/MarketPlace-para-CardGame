@@ -137,6 +137,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: rewards_db
+    ports:
+      - "5010:5432"
     networks:
       - rede-interna
 
@@ -162,6 +164,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: profile_db
+    ports:
+      - "5011:5432"
     networks:
       - rede-interna
 

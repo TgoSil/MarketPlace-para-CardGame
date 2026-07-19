@@ -40,7 +40,9 @@ public class SettlementOrchestrator {
                 .setPrecoCarta(transacao.getPreco().doubleValue())
                 .build();
 
-        TransfereDinheiroResponse moneyRes = profileStub.transfereDinheiro(moneyReq);
+        TransfereDinheiroResponse moneyRes = profileStub
+                .withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS)
+                .transfereDinheiro(moneyReq);
         
         if (!moneyRes.getSucesso()) {
             log.warn("Transação Falhou no Profile Service: {}", moneyRes.getMensagem());
@@ -59,7 +61,9 @@ public class SettlementOrchestrator {
                 .setQuantidade(transacao.getQuantidade())
                 .build();
 
-        TransfereCartaResponse cardRes = inventoryStub.transfereCarta(cardReq);
+        TransfereCartaResponse cardRes = inventoryStub
+                .withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS)
+                .transfereCarta(cardReq);
 
         if (!cardRes.getSucesso()) {
             log.warn("Transação Falhou no Inventory Service: {}", cardRes.getMensagem());
@@ -121,7 +125,9 @@ public class SettlementOrchestrator {
                 .build();
 
         try {
-            TransfereDinheiroResponse rollbackRes = profileStub.transfereDinheiro(rollbackReq);
+            TransfereDinheiroResponse rollbackRes = profileStub
+                    .withDeadlineAfter(5, java.util.concurrent.TimeUnit.SECONDS)
+                    .transfereDinheiro(rollbackReq);
             
             if (rollbackRes.getSucesso()) {
                 log.info("Estorno contábil realizado com sucesso para a transação {}", transacao.getId());

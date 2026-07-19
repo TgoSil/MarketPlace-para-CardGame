@@ -1,15 +1,15 @@
 package com.quatro.settlement_service.domain.event;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 public record LeilaoEvent(
-        UUID ordemCompraId,
-        UUID ordemVendaId,
-        UUID compradorId,
-        UUID vendedorId,
-        UUID cartaId,
-        Integer preco,
-        Integer quantidade
+        UUID idLeilao,
+        UUID idBidVencedora,
+        UUID idVendedor,
+        UUID idComprador,
+        UUID idCarta,
+        BigDecimal valorFechamento
 ) {
     public static final String TOPICO = "LEILAO_CONCLUIDO";
 }

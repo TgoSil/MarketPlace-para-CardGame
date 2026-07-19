@@ -203,7 +203,7 @@ public class RewardsService {
 
         if (moedas != null) {
             eventPublisher.publicarRecompensaDinheiro(
-                    new RecompensaDinheiroEvent(idUser, moedas));
+                    new RecompensaDinheiroEvent(login.getIdLogin(), idUser, moedas));
         }
         if (cartas != null) {
             var cartasGanhas = cartas.stream()
@@ -212,7 +212,7 @@ public class RewardsService {
                     .map(e -> new RecompensaCartaEvent.CartaGanha(e.getKey(), e.getValue().intValue()))
                     .toList();
             eventPublisher.publicarRecompensaCarta(
-                    new RecompensaCartaEvent(idUser, cartasGanhas));
+                    new RecompensaCartaEvent(login.getIdLogin(), idUser, cartasGanhas));
         }
 
         return ResgateResponseDto.builder()
