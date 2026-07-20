@@ -1,6 +1,12 @@
 # MarketShare-para-CardGame
 Projeto de Desenvolvimento de Sistemas Distribuídos, um MarketShare de cartas para um CardGame.
 
+### Grupo: 
+Ana Julia Silva de Oliveira - 14557202
+Lucas Giovani Santos Ross - 15471693 
+Tiago Silveira Almeida - 15490509
+Vinícius Chirnev Panhoca - 15580531 
+
 ### Arquitetura
 A arquitetura escolhida é Pub/Sub com um servidor tolerante a falhas, ou seja, para o cliente será o mesmo que interagir com um servidor centralizado, mas na prática haverão diversos servidores que trocam mensagens de atualização entre si. Os publish e subscribes serão feitos pelos clientes para anunciar interesse por uma carta em específico e para colocar à venda uma carta em específico também.
 
