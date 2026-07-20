@@ -46,7 +46,7 @@ $servicosDisponiveis = [ordered]@{
 }
 
 if ($Servico -ne "") {
-    if (-not $servicosDisponiveis.ContainsKey($Servico)) {
+    if (-not $servicosDisponiveis.Contains($Servico)) {
         Write-Host "Servico '$Servico' nao reconhecido. Opcoes: $($servicosDisponiveis.Keys -join ', ')" -ForegroundColor Red
         exit 1
     }

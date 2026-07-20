@@ -16,6 +16,9 @@ bash "$SETUP_SCRIPT"
 echo "[wrapper] Injetando failover_command no pgpool.conf..."
 sed -i "s|^failover_command = .*|failover_command = 'bash $FAILOVER_SCRIPT %d %h %p %D %m %H %M %P %r %R'|" "$CONF_FILE"
 
+echo "[wrapper] Copiando .pgpoolkey para /root/..."
+cp /opt/bitnami/pgpool/conf/.pgpoolkey /root/.pgpoolkey || true
+
 echo "[wrapper] Verificando injecao:"
 grep "failover_command" "$CONF_FILE"
 
