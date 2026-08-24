@@ -1,4 +1,4 @@
-# MarketPlace para CardGame:
+# Marketplace para CardGame:
 Fork de Projeto da disciplina Sistemas Distribuídos (USP) realizado em grupo.
 
 ![DIAGRAMA DA ARQUITETURA](https://drive.google.com/uc?export=view&id=1wlR89JATDYbF0k5XY4rbW4JiINyhsLoh)
@@ -20,11 +20,11 @@ Fork de Projeto da disciplina Sistemas Distribuídos (USP) realizado em grupo.
 O projeto consiste em um MarketPlace de cartas virtuais para um CardGame construído sob arquitetura distribuída.
 Pontos chave da arquitetura do projeto são:
  - Cliente X Servidor, via APIs REST;
- - Microsserivços stateless, construídos com Java Spring Boot;
+ - Microsserviços stateless, construídos com Java Spring Boot;
  - Event-driven (PUB/SUB), com broker Kafka;
  - Uso de banco relacional (PostgreSQL) e não relacional (MongoDB);
  - Comunicação interna síncrona RPC, via gRPC, para validações pontuais;
- - Tolerância à falhas a partir de replicação de serviços, via NGXINX, e de bancos de dados PostgreSQL;
+ - Tolerância à falhas a partir de replicação de serviços, via NGINX, e de bancos de dados PostgreSQL;
  
 As funcionalidades consistem em:
  - Login/Cadastro de usuário com camada de segurança via hashing de senhas e tokens JWT;
