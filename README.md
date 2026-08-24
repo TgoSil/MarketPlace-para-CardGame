@@ -8,7 +8,7 @@ Fork de Projeto da disciplina Sistemas Distribuídos (USP) realizado em grupo.
  - Funcionalidade de login/cadastro com autenticação via tokens JWT;
  - Implementação de API Gateway via Java Spring Boot;
  - Implementação do motor de leilão, incluindo:
-   - 3 microsserviços a partir de Java Spring Boot;
+   - 3 microsserviços a partir de Java Spring Boot (Order Service, Matching Service, Settlement Service);
    - Conexões síncronas REST e gRPC;
    - Conexão assíncrona via consumo e produção de eventos Kafka;
    - Persistência de dados com banco relacional (PostgreSQL) e não relacional (MongoDB);
