@@ -1,8 +1,10 @@
 # MarketPlace para CardGame:
 Fork de Projeto da disciplina Sistemas Distribuídos (USP) realizado em grupo.
 
+![DIAGRAMA DA ARQUITETURA](https://drive.google.com/uc?export=view&id=1wlR89JATDYbF0k5XY4rbW4JiINyhsLoh)
+
 # Minhas contribuições:
- - Arquitetura de solução: Propondo a modularização dos serviços, os tipos e caminhos das conexões, escolhendo as tecnologias e construindo por completo o desenho da arquitetura.
+ - Arquitetura de solução (Arquitetura.png): Propondo a modularização dos serviços, os tipos e caminhos das conexões, escolhendo as tecnologias e construindo por completo o desenho da arquitetura.
  - Funcionalidade de login/cadastro com autenticação via tokens JWT;
  - Implementação de API Gateway via Java Spring Boot;
  - Implementação do motor de leilão, incluindo:
